@@ -14,7 +14,7 @@ from rasterio.transform import array_bounds, from_origin
 from rasterio.warp import transform_bounds, transform_geom
 
 
-DATA_DIR = Path(__file__).resolve().parent / "data"
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 GEOGRAPHIC_CRS = "EPSG:4326"
 
 
