@@ -20,6 +20,7 @@ import RasterStatus from '../components/dashboard/RasterStatus'
 import ObservationTimeline from '../components/dashboard/ObservationTimeline'
 import LocationPanel from '../components/dashboard/LocationPanel'
 import { observationBlend } from '../components/dashboard/observationBlend'
+import { clearBackscatterChangeCache } from '../services/processBackscatterChange'
 
 const emptyBackscatter: NonNullable<typeof gcovManifest[string]> = []
 const emptyPairs: ReturnType<typeof getGUNWAcquisitions> = []
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   const [dateIndex, setDateIndex] = useState(0)
   const [pairIndex, setPairIndex] = useState(0)
   const [comparisonIndex, setComparisonIndex] = useState(0)
+  const [backscatterChangeIndex, setBackscatterChangeIndex] = useState(0)
   const [mode, setMode] = useState<MapDataMode>('backscatter')
   const [tab, setTab] = useState<DataTab>('backscatter')
   const [visible, setVisible] = useState(true)
@@ -41,17 +43,18 @@ export default function DashboardPage() {
   const pairs = (location && gunwManifest[location]) || emptyPairs
   const views = useMemo(() => ({
     backscatter: dashboardObservations(acquisitions, pairs, 'backscatter'),
+    backscatterChange: dashboardObservations(acquisitions, pairs, 'backscatterChange'),
     phase: dashboardObservations(acquisitions, pairs, 'phase'),
     coherence: dashboardObservations(acquisitions, pairs, 'coherence'),
     coherenceChange: dashboardObservations(acquisitions, pairs, 'coherenceChange'),
   }), [acquisitions, pairs])
   const modes = useMemo(() => (Object.keys(views) as MapDataMode[]).filter(value => views[value].length > 0), [views])
   const observations = views[mode]
-  const activeIndex = Math.min(mode === 'backscatter' ? dateIndex : mode === 'coherenceChange' ? comparisonIndex : pairIndex, Math.max(0, observations.length - 1))
+  const activeIndex = Math.min(mode === 'backscatter' ? dateIndex : mode === 'backscatterChange' ? backscatterChangeIndex : mode === 'coherenceChange' ? comparisonIndex : pairIndex, Math.max(0, observations.length - 1))
   const blend = observationBlend(activeIndex, observations.length)
   const observation = observations[blend.index]
   const nextObservation = blend.nextIndex !== blend.index ? observations[blend.nextIndex] : undefined
-  const gunwObservation = observation?.kind === 'gunw' ? observation : undefined
+  const detailObservation = observation?.kind !== 'backscatter' ? observation : undefined
   const acquisition = acquisitions[Math.floor(dateIndex)]
   const status = rasterState?.id === observation?.key ? rasterState : null
   const backToWorld = useCallback(() => setLocation(null), [])
@@ -88,17 +91,21 @@ export default function DashboardPage() {
     return () => {
       controller.abort()
       gunw.clear()
+      clearBackscatterChangeCache()
       if (gunwCache.current === gunw) gunwCache.current = null
       if (cachedLayers.current === cache) cachedLayers.current = null
     }
   }, [])
 
   const selectLocation = useCallback((slug: string) => {
-    setDateIndex(0)
-    setPairIndex(0)
     setComparisonIndex(0)
     const nextBackscatter = gcovManifest[slug] ?? emptyBackscatter
     const nextPairs = getGUNWAcquisitions(slug)
+    setBackscatterChangeIndex(Math.max(0, dashboardObservations(nextBackscatter, nextPairs, 'backscatterChange').findIndex(item => item.startAt.startsWith('2026-08-22') && item.endAt?.startsWith('2026-09-03'))))
+    setDateIndex(slug === 'balikabok_downstream'
+      ? Math.max(0, nextBackscatter.findIndex(item => item.acquiredAt.startsWith('2026-09-03'))) : 0)
+    setPairIndex(slug === 'balikabok_downstream'
+      ? Math.max(0, nextPairs.findIndex(item => item.referenceAt.startsWith('2026-08-22') && item.secondaryAt.startsWith('2026-09-03'))) : 0)
     const firstMode = (['backscatter', 'phase', 'coherence'] as const).find(value => dashboardObservations(nextBackscatter, nextPairs, value).length) ?? 'backscatter'
     setMode(firstMode)
     setTab(firstMode === 'backscatter' ? 'backscatter' : 'deformation')
@@ -127,6 +134,7 @@ export default function DashboardPage() {
   function onDateChange(index: number) {
     if (index < 0 || index >= observations.length) return
     if (mode === 'backscatter') setDateIndex(index)
+    else if (mode === 'backscatterChange') setBackscatterChangeIndex(index)
     else if (mode === 'coherenceChange') setComparisonIndex(index)
     else setPairIndex(index)
   }
@@ -153,7 +161,7 @@ export default function DashboardPage() {
             {observation && <MapLayerControls key="layer-controls" visible={visible} mode={mode} modes={modes} onModeChange={onModeChange}
               onToggle={() => setVisible(value => !value)} />}
             {observation && <ObservationTimeline key="timeline" items={observations}
-              heading={mode === 'backscatter' ? 'Observation date' : mode === 'coherenceChange' ? 'Coherence comparison' : 'Observation pair'}
+              heading={mode === 'backscatter' ? 'Observation date' : mode === 'backscatterChange' ? 'Backscatter comparison' : mode === 'coherenceChange' ? 'Coherence comparison' : 'Observation pair'}
               dateIndex={activeIndex} onDateChange={onDateChange}>
               <RasterStatus visible={visible} mode={mode} status={status}
                 onRetry={() => { setRasterState(null); setAttempt(value => value + 1) }} />
@@ -162,7 +170,7 @@ export default function DashboardPage() {
         </section>
         <AnimatePresence>
           {location && <LocationPanel key={location} location={location} acquisition={acquisition} acquisitions={acquisitions}
-            pairs={pairs} observation={gunwObservation} observations={observations} mode={mode} modes={modes} status={status} onModeChange={onModeChange}
+            pairs={pairs} observation={detailObservation} observations={observations} mode={mode} modes={modes} status={status} onModeChange={onModeChange}
             tab={tab} dateIndex={blend.index} onTabChange={onTabChange} onDateChange={onDateChange} />}
         </AnimatePresence>
       </main>

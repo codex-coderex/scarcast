@@ -1,14 +1,16 @@
 import { useLayoutEffect, useRef } from 'react'
 import type { RefObject } from 'react'
-import type { GridLayer } from 'leaflet'
+import type { GridLayer, ImageOverlay } from 'leaflet'
 import { useMap } from 'react-leaflet'
 import type { GCOVLayerCache } from '../../services/gcovLayerCache'
 import type { GUNWDataCache } from '../../services/gunwTypes'
 import type { DashboardObservation } from './dashboardData'
 import type { RasterState } from './dashboardUtils'
 import { observationBlend } from './observationBlend'
+import { createBackscatterChangeLayer } from '../../services/processBackscatterChange'
 
-function paint(layers: GridLayer[], value: number) {
+type DisplayLayer = GridLayer | ImageOverlay
+function paint(layers: DisplayLayer[], value: number) {
   const weights = observationBlend(value, 2)
   layers[0]?.setOpacity(layers.length === 1 ? 0.8 : weights.sourceOpacity)
   layers[1]?.setOpacity(weights.targetOpacity)
@@ -24,7 +26,7 @@ export default function RasterBlendOverlay({ observation, next, fraction, cached
   onStatus: (state: RasterState) => void
 }) {
   const map = useMap()
-  const active = useRef<{ layers: GridLayer[]; key: string } | null>(null)
+  const active = useRef<{ layers: DisplayLayer[]; key: string } | null>(null)
   const position = useRef(fraction)
   const key = `${observation.key}/${next?.key ?? ''}`
   useLayoutEffect(() => {
@@ -34,7 +36,8 @@ export default function RasterBlendOverlay({ observation, next, fraction, cached
   useLayoutEffect(() => {
     const controller = new AbortController()
     const signal = controller.signal
-    async function load(item: DashboardObservation): Promise<{ layer: GridLayer; data?: RasterState['data'] }> {
+    async function load(item: DashboardObservation): Promise<{ layer: DisplayLayer; data?: RasterState['data'] }> {
+      if (item.kind === 'backscatterChange') return { layer: await createBackscatterChangeLayer(item.acquisition) }
       if (item.kind === 'backscatter') {
         if (!cachedLayers.current) throw new Error('Backscatter cache is not initialized.')
         return { layer: await cachedLayers.current.get(item.acquisition) }
