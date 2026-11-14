@@ -46,10 +46,20 @@ a {
 .app-layout {
   display: flex;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
+  align-items: flex-start;
 }
 
 .app-content {
   flex: 1;
   min-width: 0;
+}
+@media (max-width: 600px) {
+  .app-layout {
+    flex-direction: column;
+  }
+
+  .app-content {
+    width: 100%;
+  }
 }
