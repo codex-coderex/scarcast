@@ -1,0 +1,25 @@
+.map-feature__data { min-width: 0; padding: 24px; background: #1a1f20; border: 1px solid #323738; border-radius: 10px; }
+.map-feature__product { color: #b8a38e; font-size: 11px; margin: 12px 0 24px; }
+.map-feature__metadata { margin: 0; }
+.map-feature__metadata > div { margin: 0 0 20px; }
+.map-feature__metadata dt { color: #9da6a2; font-size: 11px; margin-bottom: 7px; }
+.map-feature__metadata dd { font-size: 13px; line-height: 1.7; margin: 0; font-variant-numeric: tabular-nums; }
+.map-feature__compare { display: grid; gap: 9px; color: #aeb6b3; font-size: 12px; margin: 24px 0; }
+.map-feature__compare select { width: 100%; background: #222829; border: 1px solid #48504f; border-radius: 5px; padding: 10px; color: #e9e3d9; cursor: pointer; }
+.map-feature__reading { border-top: 1px solid #343b3b; padding: 16px 0; }
+.map-feature__reading h3 { font-size: 11px; font-weight: 400; margin: 0 0 12px; color: #d6b195; }
+.map-feature__reading h3 span { display: block; margin-top: 5px; color: #aeb6b3; }
+.map-feature__reading > p { font-size: 24px; margin: 0; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.map-feature__context { border-top: 1px solid #343b3b; padding-top: 20px; margin: 4px 0 24px; font-size: 12px; line-height: 1.8; color: #aeb6b3; }
+.map-feature__sources { border-top: 1px solid #343b3b; padding-top: 16px; font-size: 11px; color: #aeb6b3; line-height: 1.8; }
+.map-feature__sources summary { color: #e9e3d9; cursor: pointer; font-size: 12px; }
+.map-feature__sources h3 { font-size: 12px; margin: 20px 0 8px; }
+.map-feature__sources p { overflow-wrap: anywhere; }
+.map-feature__sources a { display: inline-block; color: #e1b38f; margin-right: 16px; text-decoration: underline; }
+
+.map-feature__data h2 { margin: 0; font-size: 20px; font-weight: 500; }
+.map-feature__directory { display: grid; gap: 8px; margin: 20px 0; }
+.map-feature__directory h3 { margin: 0 0 4px; font-size: 12px; color: #aeb6b3; font-weight: 400; }
+.map-feature__directory button { text-align: left; padding: 10px 12px; border: 1px solid #48504f; border-radius: 5px; background: #222829; color: #e9e3d9; cursor: pointer; }
+.map-feature__directory button[aria-pressed="true"] { background: #312b27; border-color: #8b6548; }
+@media (max-width: 1100px) { .map-feature__data { padding: 20px; } }
