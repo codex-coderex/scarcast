@@ -54,7 +54,7 @@ export default function MapPage() {
         </div>
         <DataPanel dataset={analysis.dataset} observations={analysis.observations}
           comparisonDataset={analysis.comparisonDataset} inspection={analysis.inspection}
-          onComparisonChange={analysis.selectComparison} />
+          onComparisonChange={analysis.selectComparison} onObservationChange={analysis.selectObservation} />
       </div>
     </section>
   );

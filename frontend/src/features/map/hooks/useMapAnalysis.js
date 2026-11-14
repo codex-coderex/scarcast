@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { sampleScenes } from "../../../components/map/sampleScenes.js";
+import { mockObservations } from "../data/mockObservations.js";
 
 export function useMapAnalysis() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [comparisonId, setComparisonId] = useState("");
   const [inspection, setInspection] = useState(null);
-  const dataset = sampleScenes[selectedIndex];
-  const comparisonDataset = sampleScenes.find((scene) => scene.id === comparisonId) ?? null;
+  const dataset = mockObservations[selectedIndex];
+  const comparisonDataset = mockObservations.find((scene) => scene.id === comparisonId) ?? null;
 
   function selectObservation(index) {
     setSelectedIndex(index);
     setInspection(null);
-    if (sampleScenes[index].id === comparisonId) setComparisonId("");
+    if (mockObservations[index].id === comparisonId) setComparisonId("");
   }
 
   function selectComparison(id) {
@@ -20,7 +20,7 @@ export function useMapAnalysis() {
   }
 
   return {
-    observations: sampleScenes,
+    observations: mockObservations,
     selectedIndex,
     dataset,
     comparisonDataset,

@@ -10,14 +10,15 @@ import './map.css';
 
 const EMPTY_RASTERS = [];
 
-export default function RasterMap({ dataset = null, comparisonDataset = null, onPixelInspect }) {
+export default function RasterMap({ dataset = null, comparisonDataset = null, onPixelInspect,
+  basemap, mapOptions, initialRasterVisible = true, children }) {
   const map = useRef(null);
   const latestProps = useRef({ dataset, comparisonDataset, onPixelInspect });
   const inspectionRequest = useRef(0);
   const [sources, setSources] = useState({ status: 'empty' });
   const [retry, setRetry] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(initialRasterVisible);
   const [opacity, setOpacity] = useState(0.85);
   const [bounds, setBounds] = useState(null);
   const [point, setPoint] = useState(null);
@@ -93,12 +94,13 @@ export default function RasterMap({ dataset = null, comparisonDataset = null, on
       fitBounds={() => bounds && map.current?.fitBounds(bounds, { padding: [24, 24] })}
       inspectCenter={() => map.current && inspect(map.current.getCenter())} />
     <div className="raster-map__canvas">
-      <MapContainer ref={map} center={[14.9207, 120.3987]} zoom={12} className="raster-map__leaflet">
-        <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors' />
+      <MapContainer ref={map} center={[14.9207, 120.3987]} zoom={12} className="raster-map__leaflet" {...mapOptions}>
+        <TileLayer url={basemap?.url ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png"}
+          attribution={basemap?.attribution ?? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'} />
         <MapLayers rasters={rasters} activeIndex={activeIndex} visible={visible} opacity={opacity}
           min={min} max={max} onBounds={setBounds} onInspect={inspect} />
         {point && <CircleMarker center={point} radius={5} pathOptions={{ color: '#fff4df', fillColor: '#a9633f', fillOpacity: 1, weight: 2 }} />}
+        {children}
       </MapContainer>
       {!referenceUrl && <div className="raster-map__state" role="status">Select a reference observation to view its raster.</div>}
       {referenceUrl && !ready && sources.status !== 'error' && <div className="raster-map__state" role="status">Loading observation pixels…</div>}
@@ -106,14 +108,16 @@ export default function RasterMap({ dataset = null, comparisonDataset = null, on
         <span>Could not load the observation. {sources.error}</span>
         <button type="button" onClick={() => setRetry((value) => value + 1)}>Retry raster loading</button>
       </div>}
-      {ready && <div className="raster-map__map-label">{activeIndex === 1 ? 'Comparison' : 'Reference'} · {visible ? 'Backscatter · dB' : 'Raster hidden'}</div>}
+      {ready && <div className="raster-map__map-label">{activeIndex === 1 ? 'Comparison' : 'Reference'} · {visible ? 'Backscatter · dB' : basemap?.label ?? 'Raster hidden'}</div>}
     </div>
     <div className="raster-map__footer">
       <p role="status">{sampleError || (sampling ? 'Inspecting pixels…' : 'Click the map or inspect its center to read the selected observations.')}</p>
-      <div className="raster-map__legend" aria-label={`Shared display range ${min.toFixed(2)} to ${max.toFixed(2)} dB`}>
+      {visible && <div className="raster-map__legend" aria-label={`Shared display range ${min.toFixed(2)} to ${max.toFixed(2)} dB`}>
         <span>{min.toFixed(2)} dB</span><i aria-hidden="true" /><span>{max.toFixed(2)} dB</span>
-      </div>
-      <p className="raster-map__legend-note">Shared display stretch. Pixel readings retain their stored values.</p>
+      </div>}
+      <p className="raster-map__legend-note">{visible
+        ? 'Shared display stretch. Pixel readings retain their stored values.'
+        : 'Dates and pixel readings refer to NISAR observations.'}</p>
     </div>
   </section>;
 }

@@ -16,7 +16,7 @@ export default function MapControls({ dataset, comparisonDataset, activeIndex, s
     <div className="raster-map__tools">
       <label className="raster-map__visibility">
         <input type="checkbox" checked={visible} onChange={(event) => setVisible(event.target.checked)} />
-        Raster visible
+        Radar overlay
       </label>
       <label className="raster-map__opacity">
         Opacity <output>{Math.round(opacity * 100)}%</output>
