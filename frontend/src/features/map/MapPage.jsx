@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getWaybackItems } from "@esri/wayback-core";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import MapViewer from "./components/MapViewer";
 import DataPanel from "./components/DataPanel";
 import DateTimeline from "./components/DateTimeline";
@@ -45,6 +45,7 @@ function sceneIntersectsArea(scene, area, caseId) {
 
 export default function MapPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [saved] = useState(readSession);
   const initialLat = parseCoordinate(searchParams.get("lat"), -90, 90);
   const initialLng = parseCoordinate(searchParams.get("lng"), -180, 180);
@@ -275,6 +276,17 @@ export default function MapPage() {
           onRadiusChange={(radiusMeters) => setArea((current) => current ? { ...current, radiusMeters } : null)}
           matchingObservations={matchingObservations}
           onClearSelection={clearSelection}
+          onPreviewAnalysis={() => {
+            const params = new URLSearchParams();
+            if (area) {
+              params.set("lat", String(area.center[0]));
+              params.set("lng", String(area.center[1]));
+              params.set("radius", String(area.radiusMeters));
+            }
+            if (anchorDate) params.set("anchor", anchorDate);
+            if (selectedCaseId) params.set("case", selectedCaseId);
+            navigate(`/analysis/${encodeURIComponent(selectedCaseId || "explore")}?${params}`);
+          }}
         />
       </div>
 

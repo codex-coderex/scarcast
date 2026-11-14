@@ -25,6 +25,7 @@ export default function DataPanel({
   onRadiusChange,
   matchingObservations,
   onClearSelection,
+  onPreviewAnalysis,
 }) {
   return (
     <aside className="scar-data-panel" aria-label="Area explorer">
@@ -152,6 +153,13 @@ export default function DataPanel({
       </div>
 
       <div className="scar-panel-bottom">
+        <button
+          type="button"
+          className="scar-secondary-button"
+          onClick={onPreviewAnalysis}
+        >
+          Preview analysis workspace
+        </button>
         <button type="button" disabled className="scar-analyze-button">Analyze area</button>
         <p>Analysis unlocks when real coverage, compatible observations, and processed outputs are connected.</p>
       </div>
