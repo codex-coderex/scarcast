@@ -1,0 +1,6 @@
+asf-search
+earthaccess
+h5py
+numpy
+python-dotenv
+rasterio
