@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:gcov": "node --test tests/processGCOVData.test.mjs tests/gcovLayerCache.test.mjs",
+    "test:gunw": "node --test tests/processGUNWData.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -12,6 +14,9 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.3.5",
     "framer-motion": "^14.14.0",
+    "georaster": "^1.6.0",
+    "georaster-layer-for-leaflet": "^4.1.2",
+    "geotiff": "^2.1.3",
     "leaflet": "^1.9.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -22,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

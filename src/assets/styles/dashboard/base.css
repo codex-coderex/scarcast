@@ -1,0 +1,26 @@
+body:has(.atlas) { min-width: 0; }
+.atlas {
+  --atlas-bg: #141719;
+  --atlas-paper: #e6e4dc;
+  --atlas-muted: #a0a5a3;
+  --atlas-copper: #dfa36e;
+  width: 100%;
+  height: 100svh;
+  min-height: 540px;
+  position: relative;
+  overflow: hidden;
+  background: var(--atlas-bg);
+  color: var(--atlas-paper);
+  font-family: "DM Sans", Arial, sans-serif;
+}
+.atlas button { font: inherit; cursor: pointer; color: inherit; }
+.atlas button:disabled { cursor: default; opacity: .3; }
+.atlas button:focus-visible, .atlas a:focus-visible, .atlas input:focus-visible { outline: 2px solid var(--atlas-copper); outline-offset: 5px; }
+.atlas-eyebrow { font-size: 10px; line-height: 1.4; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; }
+@media (max-width: 700px) {
+  .atlas { min-height: 100svh; }
+  .atlas--focused { overflow-y: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas *, .atlas *::before, .atlas *::after { transition: none !important; animation: none !important; }
+}
