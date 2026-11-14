@@ -3,9 +3,9 @@ import Globe, { type GlobeMethods } from "react-globe.gl";
 import * as THREE from "three";
 
 // EarthGlobe.tsx lives in landing/components; images live in landing/globe.
-import earthMap from "../globe/earth.jpg";
-import earthTopology from "../globe/topology.png";
-import earthClouds from "../globe/clouds.png";
+import earthMap from "../../assets/images/globe/earth.jpg"
+import earthTopology from "../../assets/images/globe/topology.png";
+import earthClouds from "../../assets/images/globe/clouds.png";
 
 type Arc = {
   startLat: number;

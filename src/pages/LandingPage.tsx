@@ -1,6 +1,6 @@
-import Navbar from "./components/Navbar";
-import Hero from "./components/Hero";
-import MapPreview from "./components/MapPreview";
+import Navbar from "../components/landing/Navbar";
+import Hero from "../components/landing/Hero";
+import MapPreview from "../components/landing/MapPreview";
 
 const methods = [
   {

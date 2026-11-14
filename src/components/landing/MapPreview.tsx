@@ -1,4 +1,4 @@
-import mapPreview from "../images/map-preview.png";
+import mapPreview from "../../assets/images/map-preview.png";
 
 export default function MapPreview() {
   return (
