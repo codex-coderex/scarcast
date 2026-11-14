@@ -17,6 +17,7 @@ function colorize(min, max, noDataValue) {
 export default function MapLayers({ rasters, activeIndex, visible, opacity, min, max, onBounds, onInspect }) {
   const map = useMapEvents({ click: (event) => onInspect(event.latlng) });
   const layers = useRef([]);
+  const fittedBounds = useRef(null);
 
   useEffect(() => {
     const nextLayers = rasters.map((raster) => new GeoRasterLayer({
@@ -30,7 +31,10 @@ export default function MapLayers({ rasters, activeIndex, visible, opacity, min,
     if (nextLayers[0]) {
       const bounds = nextLayers[0].getBounds();
       onBounds(bounds);
-      map.fitBounds(bounds, { padding: [24, 24], animate: false });
+      if (!fittedBounds.current || !fittedBounds.current.equals(bounds)) {
+        map.fitBounds(bounds, { padding: [24, 24], animate: false });
+        fittedBounds.current = bounds;
+      }
     } else {
       onBounds(null);
     }

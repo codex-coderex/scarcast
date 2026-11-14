@@ -1,11 +1,9 @@
-import LocationMarkers from "./LocationMarkers.jsx";
+import RasterMap from "../../../components/map/RasterMap.jsx";
 
-export default function MapViewer() {
+export default function MapViewer({ dataset, comparisonDataset, onPixelInspect }) {
   return (
-    <section>
-      <h2>Map Viewer</h2>
-      <p>Map goes here.</p>
-      <LocationMarkers />
-    </section>
+    <div className="map-feature__viewer">
+      <RasterMap dataset={dataset} comparisonDataset={comparisonDataset} onPixelInspect={onPixelInspect} />
+    </div>
   );
 }
