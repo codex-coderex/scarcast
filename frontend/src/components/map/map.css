@@ -1,0 +1,40 @@
+.raster-map { background: #191d1f; border: 1px solid #3b4142; border-radius: 4px; overflow: hidden; }
+.raster-map__controls { padding: 16px; border-bottom: 1px solid #3b4142; }
+.raster-map button { border: 1px solid #555d5d; border-radius: 3px; background: #232a2c; color: #e2e4df; padding: 8px 12px; font-size: 11px; line-height: 1.6; }
+.raster-map button:hover:not(:disabled) { background: #344044; border-color: #a0a79f; }
+.raster-map__switch { display: flex; gap: 8px; margin-bottom: 16px; }
+.raster-map__switch button { flex: 1; font-size: 12px; padding: 10px 12px; text-align: left; }
+.raster-map__switch button span { display: inline-block; margin-left: 12px; color: #c0c6c1; font-size: 11px; }
+.raster-map__switch button[aria-pressed="true"] { border-color: #d49b70; background: #3b3027; color: #ffe2c7; }
+.raster-map__tools { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.raster-map__visibility { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #c6cdca; white-space: nowrap; }
+.raster-map input { accent-color: #d49b70; }
+.raster-map__opacity { display: flex; align-items: center; gap: 8px; color: #c6cdca; font-size: 11px; flex: 1; min-width: 160px; }
+.raster-map__opacity output { width: 30px; font-variant-numeric: tabular-nums; }
+.raster-map__opacity input { width: 100%; min-width: 60px; height: 24px; }
+.raster-map__canvas { position: relative; }
+.raster-map__leaflet { height: 500px; width: 100%; background: #101b21; font-family: inherit; }
+.raster-map__state { position: absolute; z-index: 800; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(85%, 420px); padding: 20px; border: 1px solid #6c6255; background: #202627; color: #f0e9dd; font-size: 13px; line-height: 1.7; text-align: center; border-radius: 4px; }
+.raster-map__state button { display: block; margin: 16px auto 0; }
+.raster-map__map-label { position: absolute; top: 16px; right: 16px; z-index: 800; background: #172023e8; border: 1px solid #485557; border-radius: 3px; padding: 8px 12px; font-size: 11px; pointer-events: none; color: #e1e6df; }
+.raster-map__footer { padding: 16px; }
+.raster-map__footer > p { margin: 0 0 14px; color: #bac4c1; font-size: 11px; line-height: 1.7; }
+.raster-map__legend { display: flex; align-items: center; gap: 12px; font-size: 10px; font-variant-numeric: tabular-nums; color: #d1d6d0; }
+.raster-map__legend i { display: block; flex: 1; height: 7px; background: linear-gradient(to right, rgb(39, 53, 60), rgb(240, 201, 164)); border-radius: 1px; }
+.raster-map__footer > .raster-map__legend-note { font-size: 10px; margin: 8px 0 0; color: #a0adaa; }
+.raster-map .leaflet-bar a { background: #202a2d; color: #ebede4; border-color: #4a5658; }
+.raster-map .leaflet-bar a:hover { background: #354346; }
+.raster-map .leaflet-control-attribution { background: #172023dd; color: #c4cbc5; font-size: 9px; }
+.raster-map .leaflet-control-attribution a { color: #e0c5a8; }
+
+@media (max-width: 1050px) {
+  .raster-map__switch button span { display: block; margin-left: 0; margin-top: 4px; }
+}
+
+@media (max-width: 600px) {
+  .raster-map__leaflet { height: 390px; }
+  .raster-map__controls { padding: 12px; }
+  .raster-map__tools { gap: 10px; }
+  .raster-map__opacity { flex-basis: 60%; }
+  .raster-map__map-label { top: 12px; right: 12px; font-size: 10px; padding: 6px 8px; }
+}

@@ -1,0 +1,61 @@
+{
+  "source": "https://nisar.asf.earthdatacloud.nasa.gov/NISAR/NISAR_L2_GCOV_PROVISIONAL_V1/NISAR_L2_PR_GCOV_029_140_A_009_4005_DHDH_A_20260903T213032_20260903T213106_P05023_N_F_J_001/NISAR_L2_PR_GCOV_029_140_A_009_4005_DHDH_A_20260903T213032_20260903T213106_P05023_N_F_J_001.h5",
+  "layer": "/science/LSAR/GCOV/grids/frequencyA/HHHH",
+  "aoi": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          120.365,
+          14.9431
+        ],
+        [
+          120.3495,
+          14.9208
+        ],
+        [
+          120.3589,
+          14.8974
+        ],
+        [
+          120.3944,
+          14.884
+        ],
+        [
+          120.4257,
+          14.8895
+        ],
+        [
+          120.4478,
+          14.9043
+        ],
+        [
+          120.4461,
+          14.9292
+        ],
+        [
+          120.4384,
+          14.9499
+        ],
+        [
+          120.4168,
+          14.9551
+        ],
+        [
+          120.39,
+          14.9574
+        ],
+        [
+          120.365,
+          14.9431
+        ]
+      ]
+    ]
+  },
+  "units": "dB",
+  "source_crs": "EPSG:32651",
+  "display_crs": "EPSG:3857",
+  "visualization": "Single-acquisition backscatter (dB)",
+  "display_min_db": -12.666807537078858,
+  "display_max_db": 1.167296767234798
+}
