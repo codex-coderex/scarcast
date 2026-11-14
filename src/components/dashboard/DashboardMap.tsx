@@ -3,12 +3,14 @@ import type { RefObject } from 'react'
 import { divIcon } from 'leaflet'
 import type { LatLngTuple } from 'leaflet'
 import { MapContainer, Marker, Polygon, Polyline, TileLayer, Tooltip } from 'react-leaflet'
-import type { GCOVAcquisition } from '../../services/processGCOVData'
+import type { GUNWDataCache } from '../../services/gunwTypes'
+import type { DashboardObservation } from './dashboardData'
 import type { GCOVLayerCache } from '../../services/gcovLayerCache'
 import { centerFor, locations, nameFor, worldBounds, worldViewOptions } from './dashboardUtils'
 import type { RasterState } from './dashboardUtils'
 import MapViewport from './MapViewport'
 import BackscatterOverlay from './BackscatterOverlay'
+import GUNWOverlay from './GUNWOverlay'
 
 const markerIcon = divIcon({
   className: 'atlas-location-marker',
@@ -17,11 +19,13 @@ const markerIcon = divIcon({
   iconAnchor: [15, 15],
 })
 
-export default memo(function DashboardMap({ location, acquisition, cachedLayers, showBackscatter, attempt, onSelectLocation, onRasterStatus }: {
+export default memo(function DashboardMap({ location, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus }: {
   location: string | null
-  acquisition?: GCOVAcquisition
+  observation?: DashboardObservation
   cachedLayers: RefObject<GCOVLayerCache | null>
-  showBackscatter: boolean
+  gunwCache: RefObject<GUNWDataCache | null>
+  visible: boolean
+  onMovingChange: (moving: boolean) => void
   attempt: number
   onSelectLocation: (slug: string) => void
   onRasterStatus: (state: RasterState) => void
@@ -34,7 +38,7 @@ export default memo(function DashboardMap({ location, acquisition, cachedLayers,
       <TileLayer className="atlas-basemap" url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' maxZoom={19}
         updateWhenIdle updateWhenZooming />
-      <MapViewport location={location} cachedLayers={cachedLayers} />
+      <MapViewport location={location} onMovingChange={onMovingChange} />
       {!location && <>
         {[-60, -30, 0, 30, 60].map(latitude => <Polyline key={`lat${latitude}`}
           positions={[[latitude, -180], [latitude, 180]]} pathOptions={{ color: '#b3a38a', weight: 0.5, opacity: 0.15, interactive: false }} />)}
@@ -51,11 +55,12 @@ export default memo(function DashboardMap({ location, acquisition, cachedLayers,
           </Tooltip>
         </Marker>)}
       </>}
-      {acquisition && <>
-        <Polygon positions={acquisition.metadata.aoi.coordinates[0].map(([lon, lat]) => [lat, lon] as LatLngTuple)}
+      {observation && <>
+        <Polygon positions={observation.acquisition.metadata.aoi.coordinates[0].map(([lon, lat]) => [lat, lon] as LatLngTuple)}
           pathOptions={{ color: '#dfa36e', weight: 1.5, opacity: 0.85, fill: false, dashArray: '5 6', interactive: false }} />
-        {showBackscatter && <BackscatterOverlay acquisition={acquisition} cachedLayers={cachedLayers}
-          onStatus={onRasterStatus} attempt={attempt} />}
+        {visible && (observation.kind === 'backscatter'
+          ? <BackscatterOverlay acquisition={observation.acquisition} cachedLayers={cachedLayers} onStatus={onRasterStatus} attempt={attempt} />
+          : <GUNWOverlay observation={observation} cache={gunwCache} onStatus={onRasterStatus} attempt={attempt} />)}
       </>}
     </MapContainer>
   )

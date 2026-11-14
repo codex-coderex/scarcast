@@ -42,12 +42,25 @@ export function createGUNWDataCache(): GUNWDataCache {
   const processed = new Map<string, Promise<ProcessedGUNWData>>()
   const layers = new Map<string, Promise<GridLayer>>()
   const instances = new Set<GridLayer>()
+  let moving = false
+  const waiting = new Set<() => void>()
+  function setMoving(value: boolean) {
+    moving = value
+    if (!value) {
+      for (const resume of waiting) resume()
+      waiting.clear()
+    }
+  }
+  async function waitForMap(signal: AbortSignal) {
+    while (moving && !signal.aborted) await new Promise<void>(resolve => waiting.add(resolve))
+    signal.throwIfAborted()
+  }
 
   function memo<T>(cache: Map<string, Promise<T>>, key: string, load: (signal: AbortSignal) => Promise<T>): Promise<T> {
     const existing = cache.get(key)
     if (existing) return existing
     const signal = controller.signal
-    const promise = Promise.resolve().then(() => { signal.throwIfAborted(); return load(signal) }).catch(error => {
+    const promise = Promise.resolve().then(async () => { await waitForMap(signal); return load(signal) }).catch(error => {
       if (cache.get(key) === promise) cache.delete(key)
       throw error
     })
@@ -102,20 +115,32 @@ export function createGUNWDataCache(): GUNWDataCache {
     }), signal)
   }
 
-  async function getLayer(acquisition: GUNWAcquisition, options: GUNWProcessOptions = {}, signal?: AbortSignal) {
-    signal?.throwIfAborted()
-    const descriptor = selectedLayer(acquisition, options.layer)
-    const key = JSON.stringify([acquisitionKey(acquisition, descriptor), optionKey(options)])
-    return forConsumer(memo(layers, key, async current => {
-      const { layerOptions } = await process(acquisition, options, current)
+  function renderedLayer(key: string, load: (signal: AbortSignal) => Promise<ProcessedGUNWData>, signal?: AbortSignal) {
+    const lifecycle = controller.signal
+    const result = memo(layers, key, async current => {
+      const { layerOptions } = await load(current)
       const { default: GeoRasterLayer } = await import('georaster-layer-for-leaflet')
-      current.throwIfAborted()
+      await waitForMap(current)
       const layer: GridLayer & { cache: Record<string, HTMLCanvasElement> } = new GeoRasterLayer(layerOptions)
       // Version 4.1.2 otherwise shares a prototype cache between dates and quantities.
       layer.cache = {}
       instances.add(layer)
       return layer
-    }), signal)
+    })
+    return forConsumer(result.then(async layer => { await waitForMap(lifecycle); return layer }), signal)
+  }
+
+  async function getLayer(acquisition: GUNWAcquisition, options: GUNWProcessOptions = {}, signal?: AbortSignal) {
+    signal?.throwIfAborted()
+    const descriptor = selectedLayer(acquisition, options.layer)
+    const key = JSON.stringify([acquisitionKey(acquisition, descriptor), optionKey(options)])
+    return renderedLayer(key, current => process(acquisition, options, current), signal)
+  }
+
+  async function getChangeLayer(before: GUNWAcquisition, after: GUNWAcquisition, options: GUNWProcessOptions = {}, signal?: AbortSignal) {
+    signal?.throwIfAborted()
+    const key = JSON.stringify(['change-layer', before.location, before.id, before.frequency, after.id, after.frequency, options.layer, optionKey(options)])
+    return renderedLayer(key, current => coherenceChange(before, after, options, current), signal)
   }
 
   async function preload(acquisitions: readonly GUNWAcquisition[], selected?: readonly string[], signal?: AbortSignal) {
@@ -142,6 +167,7 @@ export function createGUNWDataCache(): GUNWDataCache {
 
   function clear() {
     controller.abort()
+    setMoving(false)
     for (const layer of instances) layer.remove()
     instances.clear()
     rasters.clear()
@@ -150,5 +176,5 @@ export function createGUNWDataCache(): GUNWDataCache {
     controller = new AbortController()
   }
 
-  return { process, coherenceChange, getLayer, preload, clear }
+  return { process, coherenceChange, getLayer, getChangeLayer, setMoving, preload, clear }
 }

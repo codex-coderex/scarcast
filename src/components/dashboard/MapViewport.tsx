@@ -1,15 +1,14 @@
 import { useLayoutEffect, useRef } from 'react'
-import type { RefObject } from 'react'
 import { useMap } from 'react-leaflet'
 import { useReducedMotion } from 'framer-motion'
 import { gcovManifest } from '../../services/processGCOVData'
-import type { GCOVLayerCache } from '../../services/gcovLayerCache'
+import { gunwManifest } from '../../services/processGUNWData'
 import { locationViewOptions, worldBounds, worldViewOptions } from './dashboardUtils'
 
 /** Fit once per navigation, after the map has its final dimensions. */
-export default function MapViewport({ location, cachedLayers }: {
+export default function MapViewport({ location, onMovingChange }: {
   location: string | null
-  cachedLayers: RefObject<GCOVLayerCache | null>
+  onMovingChange: (moving: boolean) => void
 }) {
   const map = useMap()
   const reduceMotion = useReducedMotion()
@@ -18,9 +17,9 @@ export default function MapViewport({ location, cachedLayers }: {
   useLayoutEffect(() => {
     let frame = 0
     let size = map.getSize()
-    const acquisition = location ? gcovManifest[location]?.[0] : undefined
-    const moving = () => cachedLayers.current?.setMoving(true)
-    const settled = () => cachedLayers.current?.setMoving(false)
+    const acquisition = location ? gcovManifest[location]?.[0] ?? gunwManifest[location]?.[0] : undefined
+    const moving = () => onMovingChange(true)
+    const settled = () => onMovingChange(false)
     map.on('movestart', moving)
     map.on('moveend', settled)
 
@@ -56,7 +55,7 @@ export default function MapViewport({ location, cachedLayers }: {
       map.off('moveend', settled)
       settled()
     }
-  }, [map, location, reduceMotion, cachedLayers])
+  }, [map, location, reduceMotion, onMovingChange])
 
   // Stop only on unmount, not during the layout change for every navigation.
   useLayoutEffect(() => () => { map.stop() }, [map])

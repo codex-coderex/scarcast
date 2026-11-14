@@ -1,5 +1,13 @@
 .atlas-section-heading { display: flex; align-items: flex-start; gap: 16px; margin-top: 34px; margin-bottom: 20px; }
 .atlas-section-number { font-size: 10px; color: var(--atlas-copper); padding-top: 2px; }
+.atlas-gunw-views { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 22px; }
+.atlas-gunw-views button { border: 1px solid #626d5955; background: transparent; padding: 8px 10px; font-size: 10px; color: #aeb7a7; }
+.atlas-gunw-views button[aria-pressed="true"] { border-color: var(--atlas-copper); color: var(--atlas-copper); }
+.atlas-gunw-scale { height: 12px; margin: 10px 0 8px; }
+.atlas-gunw-scale--phase { background: linear-gradient(90deg, #2166ac, #f7f7f7, #b2182b); }
+.atlas-gunw-scale--coherence { background: linear-gradient(90deg, #440154, #3b528b, #21918c, #5ec962, #fde725); }
+.atlas-gunw-scale--coherenceChange { background: linear-gradient(90deg, #b2182b, #f7f7f7, #2166ac); }
+.atlas-observation-list small { display: block; color: #a2ae95; font-size: 9px; margin-top: 5px; line-height: 1.5; }
 .atlas-section-heading .atlas-eyebrow { color: #abb49f; font-size: 8px; margin: 0 0 7px; }
 .atlas-body-copy { color: #b1baa8; font-size: 12px; line-height: 1.9; }
 .atlas-signal-legend { margin: 26px 0 31px; }

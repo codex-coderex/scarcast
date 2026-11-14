@@ -91,6 +91,8 @@ export interface GUNWDataCache {
   process: (acquisition: GUNWAcquisition, options?: GUNWProcessOptions, signal?: AbortSignal) => Promise<ProcessedGUNWData>
   coherenceChange: (before: GUNWAcquisition, after: GUNWAcquisition, options?: GUNWProcessOptions, signal?: AbortSignal) => Promise<ProcessedGUNWData>
   getLayer: (acquisition: GUNWAcquisition, options?: GUNWProcessOptions, signal?: AbortSignal) => Promise<GridLayer>
+  getChangeLayer: (before: GUNWAcquisition, after: GUNWAcquisition, options?: GUNWProcessOptions, signal?: AbortSignal) => Promise<GridLayer>
+  setMoving: (moving: boolean) => void
   preload: (acquisitions: readonly GUNWAcquisition[], layers?: readonly string[], signal?: AbortSignal) => Promise<{ loaded: string[]; failed: { key: string; error: unknown }[] }>
   /** Aborts shared pending work, removes cached Leaflet layers, and frees data. */
   clear: () => void
