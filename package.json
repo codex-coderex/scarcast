@@ -6,6 +6,7 @@
   "scripts": {
     "test:gcov": "node --test tests/processGCOVData.test.mjs tests/gcovLayerCache.test.mjs",
     "test:gunw": "node --test tests/processGUNWData.test.mjs",
+    "test:dashboard": "node --test tests/dashboardGUNW.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

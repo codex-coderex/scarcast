@@ -211,3 +211,30 @@ test('preloads without mounting maps and reuses isolated tile caches per layer/d
   assert.equal(a.removed, true)
   assert.equal(b.removed, true)
 })
+
+test('caches comparison layers independently and holds new raster work during map flights', async context => {
+  context.mock.method(globalThis, 'fetch', localFetch)
+  const cache = service.createGUNWDataCache()
+  cache.setMoving(true)
+  requests.length = 0
+  const pending = cache.getChangeLayer(pairs[0], pairs[1])
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(requests.length, 0)
+  cache.setMoving(false)
+  const first = await pending
+  assert.equal(first, await cache.getChangeLayer(pairs[0], pairs[1]))
+  const next = await cache.getChangeLayer(pairs[1], pairs[2])
+  assert.notEqual(first.cache, next.cache)
+  cache.setMoving(true)
+  let returned = false
+  const cached = cache.getChangeLayer(pairs[0], pairs[1]).then(() => { returned = true })
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(returned, false)
+  cache.setMoving(false)
+  await cached
+  cache.setMoving(true)
+  const aborted = assert.rejects(cache.process(pairs[2]), { name: 'AbortError' })
+  cache.clear()
+  await aborted
+  assert.equal(first.removed, true)
+})
