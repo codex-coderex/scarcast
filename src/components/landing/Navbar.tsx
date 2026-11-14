@@ -7,7 +7,7 @@ export default function Navbar() {
       <nav className="site-nav" aria-label="Main navigation">
         <a href="#mission">Mission</a>
         <a href="#approach">Approach</a>
-        <a className="nav-launch" href={import.meta.env.VITE_APP_URL || "http://localhost:5174"}>
+        <a className="nav-launch" href={import.meta.env.VITE_APP_URL || "/dashboard"}>
           Open app <span aria-hidden="true">↗</span>
         </a>
       </nav>
