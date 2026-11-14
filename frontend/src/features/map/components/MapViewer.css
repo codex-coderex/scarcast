@@ -1,5 +1,0 @@
-.map-feature__viewer { min-width: 0; overflow: hidden; }
-.map-feature__viewer .raster-map { border: 0; border-radius: 0; border-top: 1px solid #323738; }
-.map-feature__viewer .raster-map__canvas { margin: 12px; border-radius: 10px; overflow: hidden; }
-.map-viewer__sample-marker { border: 2px solid #fff4df; border-radius: 50%; background: #bd754a; box-shadow: 0 1px 6px #0009; }
-.map-feature__viewer .leaflet-control-scale-line { color: #fff; background: #172023cc; border-color: #fff; text-shadow: 0 1px 2px #000; }
