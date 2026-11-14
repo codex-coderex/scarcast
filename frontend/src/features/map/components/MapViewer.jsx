@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Circle,
   CircleMarker,
@@ -11,6 +11,43 @@ import {
 import "leaflet/dist/leaflet.css";
 
 const INITIAL_CENTER = [12.5, 122.5];
+const VIEW_KEY = "scarcast.map.camera.v2";
+const ESRI_CURRENT = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const ATTRIBUTION = 'Tiles &copy; Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+
+function readSavedView() {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(VIEW_KEY) || "null");
+    if (value && Array.isArray(value.center) && value.center.length === 2 &&
+      value.center.every(Number.isFinite) && Number.isFinite(value.zoom)) return value;
+  } catch { /* Browser storage may be disabled. */ }
+  return { center: INITIAL_CENTER, zoom: 6 };
+}
+
+function CameraPersistence() {
+  const map = useMapEvents({
+    moveend() { save(); },
+    zoomend() { save(); },
+  });
+  function save() {
+    try {
+      const center = map.getCenter();
+      sessionStorage.setItem(VIEW_KEY, JSON.stringify({
+        center: [center.lat, center.lng], zoom: map.getZoom(),
+      }));
+    } catch { /* Ignore disabled browser storage. */ }
+  }
+  return null;
+}
+
+function toLeafletWaybackURL(release) {
+  if (!release?.itemURL) return ESRI_CURRENT;
+  // Official Esri Wayback itemURL is a WMTS URL template.
+  return release.itemURL
+    .replaceAll("{level}", "{z}")
+    .replaceAll("{row}", "{y}")
+    .replaceAll("{col}", "{x}");
+}
 
 function MapResizeHandler() {
   const map = useMap();
@@ -53,11 +90,13 @@ export default function MapViewer({
   area,
   onSetCenter,
   focusTarget,
+  historicalRelease,
 }) {
+  const [initialView] = useState(readSavedView);
   return (
     <MapContainer
-      center={INITIAL_CENTER}
-      zoom={6}
+      center={initialView.center}
+      zoom={initialView.zoom}
       minZoom={3}
       maxZoom={18}
       scrollWheelZoom
@@ -65,12 +104,14 @@ export default function MapViewer({
       className="scar-map-canvas"
     >
       <TileLayer
-        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-        attribution='Tiles &copy; Esri — Sources: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+        key={historicalRelease ? `wayback-${historicalRelease.releaseNum}` : "current"}
+        url={toLeafletWaybackURL(historicalRelease)}
+        attribution={ATTRIBUTION}
         maxNativeZoom={16}
         maxZoom={18}
       />
       <MapResizeHandler />
+      <CameraPersistence />
       <MapInteractions mode={mode} selectionActive={selectionActive} onMapClick={onSetCenter} focusTarget={focusTarget} />
 
       {area && (
