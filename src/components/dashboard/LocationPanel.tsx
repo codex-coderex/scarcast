@@ -9,8 +9,11 @@ import BackscatterInfo from './BackscatterInfo'
 import DeformationInfo from './DeformationInfo'
 import AnalysisInfo from './AnalysisInfo'
 import { dashboardFade } from './dashboardTransitions'
+import type { EvidenceSelection } from '../../services/corroborationData'
 
-export default function LocationPanel({ location, acquisition, acquisitions, pairs, observation, observations, mode, modes, status, tab, dateIndex, onTabChange, onDateChange, onModeChange }: {
+export default function LocationPanel({ location, acquisition, acquisitions, pairs, observation, observations, mode, modes, status, tab, dateIndex, onTabChange, onDateChange, onModeChange, evidenceSelection, onEvidenceSelectionChange }: {
+  evidenceSelection: EvidenceSelection
+  onEvidenceSelectionChange: (selection: EvidenceSelection) => void
   location: string | null
   acquisition?: GCOVAcquisition
   acquisitions: readonly GCOVAcquisition[]
@@ -55,7 +58,8 @@ export default function LocationPanel({ location, acquisition, acquisitions, pai
         <m.div {...dashboardFade} className="atlas-tab-content" key={tab}>
           {tab === 'backscatter' && acquisition && <BackscatterInfo acquisition={acquisition} />}
           {tab === 'deformation' && <DeformationInfo observation={observation} mode={mode} modes={modes} status={status} onModeChange={onModeChange} />}
-          {tab === 'analysis' && <AnalysisInfo observations={observations} mode={mode} dateIndex={dateIndex} onDateChange={onDateChange} />}
+          {tab === 'analysis' && <AnalysisInfo location={location} observations={observations} mode={mode} dateIndex={dateIndex} onDateChange={onDateChange}
+            selection={evidenceSelection} onSelectionChange={onEvidenceSelectionChange} />}
         </m.div>
         <footer className="atlas-dossier-footer"><span>SCARCAST / FIELD NOTES</span><span>NASA SPACE APPS</span></footer>
       </div>}

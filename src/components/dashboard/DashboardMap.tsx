@@ -1,5 +1,9 @@
 import { memo } from 'react'
 import type { RefObject } from 'react'
+import EvidenceMapOverlay from './EvidenceMapOverlay'
+import OpticalSceneOverlay from './OpticalSceneOverlay'
+import { selectedOpticalScene } from '../../services/corroborationData'
+import type { EvidenceSelection } from '../../services/corroborationData'
 import { divIcon } from 'leaflet'
 import type { LatLngTuple } from 'leaflet'
 import { MapContainer, Marker, Polygon, Polyline, TileLayer, Tooltip } from 'react-leaflet'
@@ -19,7 +23,10 @@ const markerIcon = divIcon({
   iconAnchor: [15, 15],
 })
 
-export default memo(function DashboardMap({ location, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus, nextObservation, blendFraction = 0 }: {
+export default memo(function DashboardMap({ location, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus, nextObservation, blendFraction = 0, evidenceSelection, opticalSelection, onSelectPlace }: {
+  opticalSelection?: EvidenceSelection
+  onSelectPlace?: (name: string) => void
+  evidenceSelection?: EvidenceSelection
   nextObservation?: DashboardObservation
   blendFraction?: number
   location: string | null
@@ -32,7 +39,8 @@ export default memo(function DashboardMap({ location, observation, cachedLayers,
   onSelectLocation: (slug: string) => void
   onRasterStatus: (state: RasterState) => void
 }) {
-  const imagery = observation?.kind === 'backscatterChange'
+  const imagery = observation?.kind === 'backscatterChange' || Boolean(evidenceSelection)
+  const optical = opticalSelection?.optical && opticalSelection.opticalScene ? selectedOpticalScene(opticalSelection.opticalScene) : undefined
   return (
     <MapContainer className="atlas-map" bounds={worldBounds} boundsOptions={worldViewOptions}
       zoomControl={false} dragging={false} scrollWheelZoom={false} doubleClickZoom={false}
@@ -65,7 +73,9 @@ export default memo(function DashboardMap({ location, observation, cachedLayers,
         {visible && <RasterBlendOverlay observation={observation} next={nextObservation} fraction={blendFraction}
           cachedLayers={cachedLayers} gunwCache={gunwCache} onStatus={onRasterStatus} attempt={attempt} />}
       </>}
-      {location === 'balikabok_downstream' && gcovManifest.mount_balikabok?.[0] && <><Polygon
+      {optical && opticalSelection && <OpticalSceneOverlay key={optical.id} scene={optical} opacity={opticalSelection.opticalOpacity} />}
+      {evidenceSelection && <EvidenceMapOverlay selection={evidenceSelection} observation={observation} onSelectPlace={onSelectPlace} />}
+      {!evidenceSelection && location === 'balikabok_downstream' && gcovManifest.mount_balikabok?.[0] && <><Polygon
         positions={gcovManifest.mount_balikabok[0].metadata.aoi.coordinates[0].map(([lon, lat]) => [lat, lon] as LatLngTuple)}
         pathOptions={{ color: '#e6e4dc', weight: 2, fill: false, dashArray: '7 5' }} />
         <Tooltip permanent direction="top" offset={[0, -10]} className="atlas-location-label"
