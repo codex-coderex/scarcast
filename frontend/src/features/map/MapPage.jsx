@@ -1,14 +1,218 @@
-import MapViewer from "./components/MapViewer.jsx";
-import DateSlider from "./components/DateSlider.jsx";
-import DataPanel from "./components/DataPanel.jsx";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
+import MapViewer from "./components/MapViewer";
+import DataPanel from "./components/DataPanel";
+import DateTimeline from "./components/DateTimeline";
+import { observations, studySites } from "./data/studySites";
+import "./MapPage.css";
+
+const DEFAULT_RADIUS = 5000;
+
+function parseCoordinate(value, min, max) {
+  if (value === null || value.trim() === "") return null;
+  const result = Number(value);
+  return Number.isFinite(result) && result >= min && result <= max ? result : null;
+}
+
+function sceneIntersectsArea(scene, area, caseId) {
+  if (!area) return false;
+  if (scene.siteId && caseId && scene.siteId === caseId) return true;
+  if (!Array.isArray(scene.bounds) || scene.bounds.length !== 2) return false;
+  // Bounding-box overlap approximation; replace with precise footprint checks when available.
+  const [[south, west], [north, east]] = scene.bounds;
+  if (![south, west, north, east].every(Number.isFinite)) return false;
+  const [lat, lng] = area.center;
+  const latDelta = area.radiusMeters / 111320;
+  const lngDelta = area.radiusMeters / (111320 * Math.max(0.1, Math.cos((lat * Math.PI) / 180)));
+  return lat + latDelta >= south && lat - latDelta <= north && lng + lngDelta >= west && lng - lngDelta <= east;
+}
 
 export default function MapPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialLat = parseCoordinate(searchParams.get("lat"), -90, 90);
+  const initialLng = parseCoordinate(searchParams.get("lng"), -180, 180);
+  const initialArea = initialLat !== null && initialLng !== null
+    ? { center: [initialLat, initialLng], radiusMeters: DEFAULT_RADIUS }
+    : null;
+
+  const [viewMode, setViewMode] = useState("explore");
+  const [selectionActive, setSelectionActive] = useState(false);
+  const [area, setArea] = useState(initialArea);
+  const [focusTarget, setFocusTarget] = useState(initialArea ? { center: initialArea.center, zoom: 11 } : null);
+  const [selectedCaseId, setSelectedCaseId] = useState(null);
+  const [anchorDate, setAnchorDate] = useState(searchParams.get("anchor") || "");
+  const [latitude, setLatitude] = useState(initialArea ? String(initialLat) : "");
+  const [longitude, setLongitude] = useState(initialArea ? String(initialLng) : "");
+  const [coordinateError, setCoordinateError] = useState("");
+
+  const selectedCase = studySites.find((site) => site.id === selectedCaseId) ?? null;
+  const matchingObservations = useMemo(
+    () => observations.filter((scene) => sceneIntersectsArea(scene, area, selectedCaseId)),
+    [area, selectedCaseId]
+  );
+
+  function updateQuery(updates) {
+    const next = new URLSearchParams(searchParams);
+    // Old dashboard links may still contain mode=pre/post; it is no longer needed.
+    next.delete("mode");
+    Object.entries(updates).forEach(([name, value]) => {
+      if (value === null || value === "") next.delete(name);
+      else next.set(name, String(value));
+    });
+    setSearchParams(next, { replace: true });
+  }
+
+  function setAreaCenter(center, radiusMeters = area?.radiusMeters ?? DEFAULT_RADIUS, shouldFocus = false) {
+    setArea({ center, radiusMeters });
+    setLatitude(center[0].toFixed(5));
+    setLongitude(center[1].toFixed(5));
+    setCoordinateError("");
+    updateQuery({ lat: center[0].toFixed(5), lng: center[1].toFixed(5) });
+    if (shouldFocus) setFocusTarget({ center, zoom: 11 });
+  }
+
+  function handleCoordinateSubmit(event) {
+    event.preventDefault();
+    const lat = parseCoordinate(latitude, -90, 90);
+    const lng = parseCoordinate(longitude, -180, 180);
+    if (lat === null || lng === null) {
+      setCoordinateError("Enter a latitude from −90 to 90 and longitude from −180 to 180.");
+      return;
+    }
+    setSelectedCaseId(null);
+    setViewMode("explore");
+    setSelectionActive(false);
+    setAreaCenter([lat, lng], area?.radiusMeters ?? DEFAULT_RADIUS, true);
+  }
+
+  function handleMapClick(center) {
+    setSelectedCaseId(null);
+    setAreaCenter(center);
+    setSelectionActive(false);
+  }
+
+  function clearSelection() {
+    setArea(null);
+    setSelectedCaseId(null);
+    setLatitude("");
+    setLongitude("");
+    setCoordinateError("");
+    setSelectionActive(false);
+    updateQuery({ lat: null, lng: null });
+  }
+
+  function handleCaseSelect(id) {
+    const site = studySites.find((entry) => entry.id === id);
+    if (!site) return;
+    setSelectedCaseId(site.id);
+    setSelectionActive(false);
+    setAreaCenter(site.center, site.radiusMeters ?? DEFAULT_RADIUS, true);
+    // Only a VERIFIED event date may prefill the anchor; demo cases leave it unchanged.
+    if (site.verified && site.eventDate) handleAnchorDateChange(site.eventDate);
+  }
+
+  function handleAnchorDateChange(value) {
+    setAnchorDate(value);
+    updateQuery({ anchor: value });
+  }
+
+  function handleModeChange(nextMode) {
+    setViewMode(nextMode);
+    setSelectionActive(false);
+    setSelectedCaseId(null);
+    // Area and anchor intentionally persist across modes.
+  }
+
   return (
-    <section>
-      <h1>Map & Analysis Page</h1>
-      <MapViewer />
-      <DateSlider />
-      <DataPanel />
-    </section>
+    <main className="scar-map-page">
+      <header className="scar-map-header">
+        <div>
+          <h1>Map &amp; Analysis</h1>
+          <p>Choose an area and reference date to explore available Earth observations.</p>
+        </div>
+      </header>
+
+      <div className="scar-map-toolbar" role="group" aria-label="Map selection mode">
+        <button
+          type="button"
+          className={viewMode === "explore" ? "is-active" : ""}
+          aria-pressed={viewMode === "explore"}
+          onClick={() => handleModeChange("explore")}
+        >Explore anywhere</button>
+        <button
+          type="button"
+          className={viewMode === "cases" ? "is-active" : ""}
+          aria-pressed={viewMode === "cases"}
+          onClick={() => handleModeChange("cases")}
+        >Case studies</button>
+        {viewMode === "cases" && (
+          <label className="scar-case-select">
+            <span>Study site</span>
+            <select value={selectedCaseId || ""} onChange={(event) => handleCaseSelect(event.target.value)}>
+              <option value="" disabled>Choose a demo site</option>
+              {studySites.map((site) => <option value={site.id} key={site.id}>{site.name}</option>)}
+            </select>
+          </label>
+        )}
+      </div>
+
+      {viewMode === "explore" && (
+        <div className="scar-selection-tools" aria-label="Area selection tools">
+          <button
+            type="button"
+            className={selectionActive ? "is-active" : ""}
+            aria-pressed={selectionActive}
+            onClick={() => setSelectionActive((current) => !current)}
+          >
+            {selectionActive ? "Cancel selection" : "Select area"}
+          </button>
+          <button type="button" disabled={!area} onClick={clearSelection}>
+            Clear selection
+          </button>
+          <span>{selectionActive ? "Click a point on the map to place the selection circle." : "Pan and zoom freely. Select area to place a new circle."}</span>
+        </div>
+      )}
+
+      <div className="scar-map-workspace">
+        <section className="scar-map-area" aria-label="Interactive satellite map">
+          <MapViewer
+            mode={viewMode}
+            selectionActive={selectionActive}
+            studySites={studySites}
+            selectedCaseId={selectedCaseId}
+            onSelectCase={handleCaseSelect}
+            area={area}
+            onSetCenter={handleMapClick}
+            focusTarget={focusTarget}
+          />
+          {viewMode === "explore" && selectionActive && (
+            <div className="scar-map-hint">Click the map to select an area</div>
+          )}
+          {viewMode === "cases" && (
+            <div className="scar-map-hint">Case-study markers are demonstration locations</div>
+          )}
+        </section>
+
+        <DataPanel
+          mode={viewMode}
+          area={area}
+          selectedCase={selectedCase}
+          anchorDate={anchorDate}
+          onAnchorDateChange={handleAnchorDateChange}
+          latitude={latitude}
+          longitude={longitude}
+          onLatitudeChange={setLatitude}
+          onLongitudeChange={setLongitude}
+          onGoToCoordinates={handleCoordinateSubmit}
+          coordinateError={coordinateError}
+          onRadiusChange={(radiusMeters) => setArea((current) => current ? { ...current, radiusMeters } : null)}
+          matchingObservations={matchingObservations}
+          onClearSelection={clearSelection}
+        />
+      </div>
+
+      <DateTimeline area={area} anchorDate={anchorDate} observations={matchingObservations} />
+      <p className="scar-map-disclaimer">Esri World Imagery is a geographic-context basemap, not an anchor-dated image. At very close zoom it may be upscaled from lower-resolution tiles. Changing the anchor date only reclassifies available satellite observations; dated imagery requires separately sourced, timestamped layers.</p>
+    </main>
   );
 }
