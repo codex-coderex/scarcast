@@ -9,8 +9,7 @@ import type { GCOVLayerCache } from '../../services/gcovLayerCache'
 import { centerFor, locations, nameFor, worldBounds, worldViewOptions } from './dashboardUtils'
 import type { RasterState } from './dashboardUtils'
 import MapViewport from './MapViewport'
-import BackscatterOverlay from './BackscatterOverlay'
-import GUNWOverlay from './GUNWOverlay'
+import RasterBlendOverlay from './RasterBlendOverlay'
 
 const markerIcon = divIcon({
   className: 'atlas-location-marker',
@@ -19,7 +18,9 @@ const markerIcon = divIcon({
   iconAnchor: [15, 15],
 })
 
-export default memo(function DashboardMap({ location, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus }: {
+export default memo(function DashboardMap({ location, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus, nextObservation, blendFraction = 0 }: {
+  nextObservation?: DashboardObservation
+  blendFraction?: number
   location: string | null
   observation?: DashboardObservation
   cachedLayers: RefObject<GCOVLayerCache | null>
@@ -58,9 +59,8 @@ export default memo(function DashboardMap({ location, observation, cachedLayers,
       {observation && <>
         <Polygon positions={observation.acquisition.metadata.aoi.coordinates[0].map(([lon, lat]) => [lat, lon] as LatLngTuple)}
           pathOptions={{ color: '#dfa36e', weight: 1.5, opacity: 0.85, fill: false, dashArray: '5 6', interactive: false }} />
-        {visible && (observation.kind === 'backscatter'
-          ? <BackscatterOverlay acquisition={observation.acquisition} cachedLayers={cachedLayers} onStatus={onRasterStatus} attempt={attempt} />
-          : <GUNWOverlay observation={observation} cache={gunwCache} onStatus={onRasterStatus} attempt={attempt} />)}
+        {visible && <RasterBlendOverlay observation={observation} next={nextObservation} fraction={blendFraction}
+          cachedLayers={cachedLayers} gunwCache={gunwCache} onStatus={onRasterStatus} attempt={attempt} />}
       </>}
     </MapContainer>
   )

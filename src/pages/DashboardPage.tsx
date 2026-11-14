@@ -19,6 +19,7 @@ import MapLayerControls from '../components/dashboard/MapLayerControls'
 import RasterStatus from '../components/dashboard/RasterStatus'
 import ObservationTimeline from '../components/dashboard/ObservationTimeline'
 import LocationPanel from '../components/dashboard/LocationPanel'
+import { observationBlend } from '../components/dashboard/observationBlend'
 
 const emptyBackscatter: NonNullable<typeof gcovManifest[string]> = []
 const emptyPairs: ReturnType<typeof getGUNWAcquisitions> = []
@@ -47,9 +48,11 @@ export default function DashboardPage() {
   const modes = useMemo(() => (Object.keys(views) as MapDataMode[]).filter(value => views[value].length > 0), [views])
   const observations = views[mode]
   const activeIndex = Math.min(mode === 'backscatter' ? dateIndex : mode === 'coherenceChange' ? comparisonIndex : pairIndex, Math.max(0, observations.length - 1))
-  const observation = observations[activeIndex]
+  const blend = observationBlend(activeIndex, observations.length)
+  const observation = observations[blend.index]
+  const nextObservation = blend.nextIndex !== blend.index ? observations[blend.nextIndex] : undefined
   const gunwObservation = observation?.kind === 'gunw' ? observation : undefined
-  const acquisition = acquisitions[dateIndex]
+  const acquisition = acquisitions[Math.floor(dateIndex)]
   const status = rasterState?.id === observation?.key ? rasterState : null
   const backToWorld = useCallback(() => setLocation(null), [])
   const onMovingChange = useCallback((moving: boolean) => {
@@ -141,6 +144,7 @@ export default function DashboardPage() {
       <main ref={dashboard} className={`atlas${location ? ' atlas--focused' : ''}`}>
         <section className="atlas-map-stage" aria-label={location ? `Map of ${nameFor(location)}` : 'World study map'}>
           <DashboardMap location={location} observation={observation} cachedLayers={cachedLayers} gunwCache={gunwCache}
+            nextObservation={nextObservation} blendFraction={blend.fraction}
             visible={visible} attempt={attempt} onMovingChange={onMovingChange}
             onSelectLocation={selectLocation} onRasterStatus={setRasterState} />
           <MapHeader location={location} onBack={backToWorld} />
@@ -159,7 +163,7 @@ export default function DashboardPage() {
         <AnimatePresence>
           {location && <LocationPanel key={location} location={location} acquisition={acquisition} acquisitions={acquisitions}
             pairs={pairs} observation={gunwObservation} observations={observations} mode={mode} modes={modes} status={status} onModeChange={onModeChange}
-            tab={tab} dateIndex={activeIndex} onTabChange={onTabChange} onDateChange={onDateChange} />}
+            tab={tab} dateIndex={blend.index} onTabChange={onTabChange} onDateChange={onDateChange} />}
         </AnimatePresence>
       </main>
     </DashboardMotion>
