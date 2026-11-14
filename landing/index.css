@@ -1,0 +1,499 @@
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+/* ==========================================
+   GLOBAL STYLES
+========================================== */
+
+:root {
+  font-family: "DM Sans", Arial, sans-serif;
+  color: #e9e7e1;
+  background: #101112;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: #d08a58;
+  color: #101112;
+}
+
+:focus-visible {
+  outline: 2px solid #d08a58;
+  outline-offset: 4px;
+}
+
+/* ==========================================
+   NAVBAR
+========================================== */
+
+.site-header {
+  height: 82px;
+  padding: 0 clamp(24px, 5vw, 88px);
+  border-bottom: 1px solid #303233;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.wordmark {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.075em;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  color: #d08a58;
+  font-size: 23px;
+  margin-right: 9px;
+  font-weight: 400;
+}
+
+.wordmark-period {
+  color: #d08a58;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 3vw, 46px);
+  font-size: 15px;
+}
+
+.site-nav > a:not(.nav-launch) {
+  color: #c6c7c4;
+  transition: color 0.2s;
+}
+
+.site-nav a:hover {
+  color: #fff;
+}
+
+.nav-launch {
+  border: 1px solid #777b7b;
+  padding: 12px 19px;
+
+  display: flex;
+  align-items: center;
+  gap: 24px;
+
+  transition: border-color 0.2s;
+}
+
+.nav-launch:hover {
+  border-color: #d08a58;
+}
+
+/* ==========================================
+   HERO SECTION
+========================================== */
+
+.hero {
+  min-height: calc(100svh - 82px);
+  padding: 0 clamp(32px, 7vw, 120px);
+
+  display: flex;
+  background: #101112;
+}
+
+.hero-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 53% 47%;
+  align-items: center;
+  min-height: 610px;
+
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  column-gap: 0;
+}
+
+.hero-copy {
+  position: relative;
+  z-index: 2;
+  padding: 64px 0;
+}
+
+.hero-title {
+  font-size: clamp(65px, 7.6vw, 132px);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+  font-weight: 600;
+  
+  margin: 0 0 34px;
+}
+.hero-title em {
+  font-weight: 400;
+  font-style: italic;
+  color: #d29060;
+}
+
+.hero-description {
+  max-width: 455px;
+  color: #b7bbba;
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.hero-actions {
+  margin-top: 36px;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 28px;
+}
+
+/* Hero Buttons */
+
+.action-primary {
+  background: #d08a58;
+  color: #191512;
+
+  min-width: 215px;
+  padding: 17px 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+
+  font-size: 15px;
+  font-weight: 700;
+
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+
+.action-primary:hover {
+  background: #e6a574;
+  transform: translateY(-2px);
+}
+
+.action-text {
+  font-size: 15px;
+
+  display: inline-flex;
+  gap: 20px;
+
+  border-bottom: 1px solid #858785;
+  padding: 12px 0;
+
+  transition: color 0.2s;
+}
+
+.action-text:hover {
+  color: #d9a47f;
+}
+
+/* Hero Globe */
+
+.hero-visual {
+  position: relative;
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  isolation: isolate;
+
+  background: radial-gradient(
+    ellipse at 50% 51%,
+    #17303b 0%,
+    #101a21 38%,
+    transparent 70%
+  );
+}
+
+.hero-visual > div:has(canvas) {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+/* ==========================================
+   SHARED SECTION STYLES
+========================================== */
+
+.editorial-section {
+  padding:
+    clamp(80px, 9vw, 130px)
+    clamp(24px, 7vw, 110px);
+}
+
+.section-body {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-body h2 {
+  max-width: 900px;
+
+  font-size: clamp(46px, 6vw, 88px);
+  line-height: 1.06;
+  letter-spacing: -0.066em;
+  font-weight: 600;
+
+  margin: 0 0 32px;
+}
+
+.section-body h2 em {
+  font-weight: 400;
+  font-style: italic;
+}
+
+.section-body > p:not(.research-note) {
+  max-width: 660px;
+  font-size: 18px;
+  line-height: 1.85;
+}
+
+/* ==========================================
+   MISSION SECTION
+========================================== */
+
+.mission-section {
+  color: #211c19;
+  background: #e9e3d9;
+}
+
+.mission-section h2 em {
+  color: #ab683f;
+}
+
+.mission-section .section-body > p {
+  color: #625e57;
+}
+
+/* ==========================================
+   MAP PREVIEW
+========================================== */
+
+.map-preview {
+  margin: 54px 0 0;
+}
+
+.map-preview-frame {
+  overflow: hidden;
+  border-radius: 18px;
+
+  background: #233139;
+  border: 1px solid rgba(34, 37, 36, 0.22);
+}
+
+.map-preview-frame img {
+  display: block;
+  width: 100%;
+
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
+
+  filter: saturate(0.8) contrast(0.95);
+}
+
+.map-caption {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  color: #5c5e5a;
+  font-size: 14px;
+  line-height: 1.55;
+
+  margin-top: 15px;
+}
+
+.map-caption a {
+  color: #815236;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.map-caption a:hover {
+  color: #412b1e;
+}
+
+/* ==========================================
+   APPROACH SECTION
+========================================== */
+
+.approach-section {
+  background: #151719;
+}
+
+.approach-section h2 em {
+  color: #d18d60;
+}
+
+.approach-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+
+  margin-top: 65px;
+}
+
+.approach-steps article {
+  border-top: 1px solid #515154;
+  padding-top: 25px;
+}
+
+.approach-steps h3 {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+
+  margin: 0 0 14px;
+}
+
+.approach-steps p {
+  font-size: 16px;
+  line-height: 1.7;
+  color: #b5b9b8;
+}
+
+.research-note {
+  margin-top: 64px;
+
+  font-size: 14px;
+  line-height: 1.6;
+  color: #989f9e;
+}
+
+/* ==========================================
+   FOOTER
+========================================== */
+
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+
+  padding: 35px clamp(24px, 5vw, 88px);
+
+  border-top: 1px solid #35383b;
+  background: #151719;
+}
+
+.site-footer > span,
+.site-footer > a:last-child {
+  font-size: 14px;
+  color: #b2b6b4;
+}
+
+/* ==========================================
+   RESPONSIVE — TABLET
+========================================== */
+
+@media (max-width: 900px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .hero-copy {
+    padding: 65px 0 8px;
+  }
+
+  .hero-title {
+    font-size: clamp(65px, 11.5vw, 105px);
+  }
+
+  .hero-visual {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE — MOBILE
+========================================== */
+
+@media (max-width: 600px) {
+  .site-header {
+    height: 70px;
+  }
+
+  .site-nav {
+    gap: 12px;
+  }
+
+  .site-nav > a:not(.nav-launch) {
+    display: none;
+  }
+
+  .nav-launch {
+    padding: 10px 12px;
+  }
+
+  .hero-title {
+    font-size: clamp(54px, 12.5vw, 80px);
+  }
+
+  .hero-copy {
+    padding-top: 54px;
+  }
+
+  .approach-steps {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    margin-top: 45px;
+  }
+
+  .section-body h2 {
+    font-size: clamp(44px, 10vw, 65px);
+  }
+
+  .map-preview {
+    margin-top: 34px;
+  }
+
+  .map-preview-frame img {
+    aspect-ratio: 4 / 3;
+  }
+}
+
+/* ==========================================
+   ACCESSIBILITY — REDUCED MOTION
+========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
