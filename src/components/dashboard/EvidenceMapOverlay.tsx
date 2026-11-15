@@ -1,35 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CircleMarker, GeoJSON, Pane, Polygon, Popup, Tooltip, useMap } from 'react-leaflet'
 import type { GeoJsonObject } from 'geojson'
 import type { LatLngTuple } from 'leaflet'
-import { corroboration, drainageUrl, reportedPlaces, screenUrl, selectedInvestigation } from '../../services/corroborationData'
+import { drainageUrl, reportedPlaces, screenUrl, selectedInvestigation } from '../../services/corroborationData'
 import type { EvidenceSelection } from '../../services/corroborationData'
 import type { TimelineItem } from './dashboardData'
 import { gcovManifest } from '../../services/processGCOVData'
-import { locationViewOptions } from './dashboardUtils'
+import { assessmentComparison, assessmentGeometryUrl } from '../../services/assessmentData'
 
 export default function EvidenceMapOverlay({ selection, observation, onSelectPlace }: { selection: EvidenceSelection; observation?: TimelineItem; onSelectPlace?: (name: string) => void }) {
   const map = useMap()
   const comparison = selectedInvestigation(observation?.startAt, observation?.endAt)
-  const url = selection.screen && comparison ? screenUrl(comparison.screen_file) : undefined
+  const assessment=assessmentComparison(observation?.startAt,observation?.endAt)
+  const url = selection.screen && comparison ? assessment?assessmentGeometryUrl(assessment.support_file):screenUrl(comparison.screen_file) : undefined
   const [channels, setChannels] = useState<GeoJsonObject | null>(null)
   const [screen, setScreen] = useState<{ url: string; data: GeoJsonObject } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const previousZone = useRef(selection.zone)
   useEffect(() => {
     const place = reportedPlaces.find(item => item.properties.brgy_name === selection.selectedPlace)
     if (!place) return
     const [lon, lat] = place.geometry.coordinates
     map.setView([lat, lon], 14, { animate: false })
   }, [map, selection.selectedPlace])
-  useEffect(() => {
-    if (previousZone.current === selection.zone) return
-    previousZone.current = selection.zone
-    if (selection.selectedPlace || !corroboration) return
-    const [west, south, east, north] = corroboration.bbox
-    const bounds = selection.zone === 'mountain' ? gcovManifest.mount_balikabok?.[0]?.bounds : [[south, west], [north, east]] as [LatLngTuple, LatLngTuple]
-    if (bounds) map.fitBounds(bounds, { ...locationViewOptions(map.getSize().y), animate: false })
-  }, [map, selection.zone, selection.selectedPlace])
   useEffect(() => {
     const controller = new AbortController()
     setError(null)
@@ -47,7 +39,7 @@ export default function EvidenceMapOverlay({ selection, observation, onSelectPla
   const mountain = gcovManifest.mount_balikabok?.[0]?.metadata.aoi.coordinates[0].map(([lon, lat]) => [lat, lon] as LatLngTuple)
   return <>
     <Pane name="investigation-screen" style={{ zIndex: 460 }}>
-      {selection.screen && screen && screen.url === url && <GeoJSON key={url} data={screen.data} style={feature => ({ color: feature?.properties.category === 2 ? '#74dfb1' : '#efa365', weight: 1, fillOpacity: .18 })}
+      {selection.screen && screen && screen.url === url && <GeoJSON key={url} data={screen.data} style={feature => ({ color: feature?.properties.category === 2 ? '#74dfb1' : feature?.properties.category===3?'#bcc1ca':'#efa365',dashArray:feature?.properties.category===3?'3 4':undefined, weight: 1, fillOpacity: .18 })}
         onEachFeature={(feature, layer) => layer.bindTooltip(feature.properties.meaning)} />}
     </Pane>
     <Pane name="investigation-vectors" style={{ zIndex: 470 }}>

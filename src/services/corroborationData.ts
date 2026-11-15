@@ -3,7 +3,7 @@ import type { LatLngBoundsLiteral } from 'leaflet'
 export type EvidenceZone = 'mountain' | 'downstream' | 'study'
 export interface EvidenceSelection {
   zone: EvidenceZone; drainage: boolean; optical: boolean; opticalOpacity: number
-  screen: boolean; reportedPlaces: boolean; opticalScene?: string; selectedPlace?: string
+  screen: boolean; reportedPlaces: boolean; opticalScene?: string; opticalSceneOverride?: string; selectedPlace?: string; candidateId?: string
 }
 export const initialEvidenceSelection: EvidenceSelection = {
   zone: 'mountain', drainage: true, optical: false, opticalOpacity: .8, screen: true, reportedPlaces: true,
@@ -56,7 +56,6 @@ export function selectedInvestigation(start?: string, end?: string) {
   const comparisons = investigation?.comparisons ?? []
   return comparisons.find(item => item.start === start?.slice(0, 10) && item.end === end?.slice(0, 10))
     ?? (!end ? comparisons.find(item => item.end === start?.slice(0, 10)) : undefined)
-    ?? comparisons.find(item => item.start < '2026-08-30' && item.end > '2026-08-30')
 }
 export const screenUrls = import.meta.glob<string>('../../data/balikabok_downstream/evidence/nisar-screen-*.geojson', { eager: true, query: '?url', import: 'default' })
 export function screenUrl(file: string) { return screenUrls[`../../data/balikabok_downstream/evidence/${file}`] }

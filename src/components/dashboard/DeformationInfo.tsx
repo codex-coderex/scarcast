@@ -3,12 +3,13 @@ import type { GUNWObservation, BackscatterChangeObservation, MapDataMode } from 
 import BackscatterChangeInfo from './BackscatterChangeInfo'
 import type { RasterState } from './dashboardUtils'
 
-export default function DeformationInfo({ observation: selectedObservation, mode, modes, status, onModeChange }: {
+export default function DeformationInfo({ observation: selectedObservation, mode, modes, status, onModeChange, showLegend = true }: {
   observation?: GUNWObservation | BackscatterChangeObservation
   mode: MapDataMode
   modes: readonly MapDataMode[]
   status: RasterState | null
   onModeChange: (mode: MapDataMode) => void
+  showLegend?: boolean
 }) {
   const observation = selectedObservation?.kind === 'gunw' ? selectedObservation : undefined
   const controls = <div className="atlas-gunw-views" role="group" aria-label="Radar view">
@@ -18,7 +19,7 @@ export default function DeformationInfo({ observation: selectedObservation, mode
   if (mode === 'backscatterChange') return <>
     <div className="atlas-section-heading"><h2>Surface change heatmap</h2></div>
     {controls}
-    <BackscatterChangeInfo observation={selectedObservation?.kind === 'backscatterChange' ? selectedObservation : undefined} />
+    <BackscatterChangeInfo observation={selectedObservation?.kind === 'backscatterChange' ? selectedObservation : undefined} showLegend={showLegend} />
   </>
   const data = status?.status === 'ready' ? status.data : undefined
   const descriptor = observation && observation.acquisition.layers[observation.options.layer!]
@@ -29,19 +30,19 @@ export default function DeformationInfo({ observation: selectedObservation, mode
   const unit = phase ? ' rad' : ''
   return (
     <>
-      <div className="atlas-section-heading"><span className="atlas-section-number">02</span><div><p className="atlas-eyebrow">Phase &amp; coherence</p><h2>Another view of change.</h2></div></div>
+      <div className="atlas-section-heading"><h2>{dataModeLabels[mode]}</h2></div>
       {controls}
       {!observation || !descriptor ? <p className="atlas-body-copy">No GUNW observations are available for this view.</p> : <>
         <p className="atlas-body-copy">{phase
           ? 'Unwrapped phase captures differences in radar phase between two acquisitions. Only pixels passing the exported phase-quality mask are shown.'
           : change ? 'This view subtracts baseline coherence from the later pair. Red shows coherence loss; blue shows an increase. Only pixels valid in both pairs are compared.'
           : 'Coherence describes how consistently the radar signal matches between two acquisitions. Low-coherence areas remain visible because they may contain surface-change information.'}</p>
-        <div className="atlas-signal-legend">
+        {showLegend && <div className="atlas-signal-legend">
           <div><span>{phase ? 'Negative phase' : change ? 'Coherence loss' : 'Low coherence'}</span><span>{phase ? 'Positive phase' : change ? 'Coherence increase' : 'High coherence'}</span></div>
           <div className={`atlas-gunw-scale atlas-gunw-scale--${mode}`} aria-hidden="true" />
           <div><strong>{min.toFixed(2)}{unit}</strong>{(phase || change) && <strong>0{unit}</strong>}<strong>{max.toFixed(2)}{unit}</strong></div>
           <p>{phase ? 'A common display stretch is used across pairs. Separate connected components may have independent phase offsets.' : change ? 'Difference in coherence, later minus baseline. This is not a displacement or landslide probability.' : 'Normalized coherence from 0 to 1; this is not a landslide probability.'}</p>
-        </div>
+        </div>}
         <dl className="atlas-metadata">
           <div><dt>Selected pair</dt><dd>{observation.label}</dd></div>
           {observation.baselineLabel && <div><dt>Baseline pair</dt><dd>{observation.baselineLabel}</dd></div>}

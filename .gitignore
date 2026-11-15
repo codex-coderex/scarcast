@@ -156,3 +156,5 @@ dist/
 
 # Local inspection tools, extracted inputs, and browser verification profiles
 /.tmp-*
+
+/docs

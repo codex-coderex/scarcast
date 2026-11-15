@@ -5,6 +5,6 @@ export default function OpticalAcquisitionNote({ selection }: { selection: Evide
   const scene = opticalTimeline?.scenes.find(item => item.id === selection.opticalScene)
   return <div className="atlas-optical-date-control" aria-live="polite">
     <p className="atlas-optical-date-label">{scene ? <time dateTime={scene.date}>{opticalDateLabel(scene)}</time> : 'No matching optical scene'}</p>
-    <p className="atlas-timeline-baseline">Follows the main timeline.{scene && <> Nearest usable image on the same side of the event.<br />{opticalEventOffset(scene)}. Gray pixels masked.</>}</p>
+    <p className="atlas-timeline-baseline">{selection.opticalSceneOverride ? 'Manually selected acquisition.' : 'Follows the main timeline. Nearest usable image on the same side of the event.'}{scene && <><br />{opticalEventOffset(scene)}. Gray pixels masked.</>}</p>
   </div>
 }

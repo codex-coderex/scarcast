@@ -2,8 +2,11 @@ import type { FitBoundsOptions, LatLngBoundsLiteral, LatLngTuple } from 'leaflet
 import { gcovManifest } from '../../services/processGCOVData'
 import { gunwManifest } from '../../services/processGUNWData'
 import type { ProcessedGUNWData } from '../../services/gunwTypes'
+import { asUTC } from '../../services/observationTime'
 
 export const worldBounds: LatLngBoundsLiteral = [[-60, -180], [80, 180]]
+// OpenStreetMap uses XYZ order; ArcGIS tile endpoints use a different order.
+export const streetTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const worldViewOptions: FitBoundsOptions = {
   paddingTopLeft: [40, 65],
   paddingBottomRight: [40, 70],
@@ -20,7 +23,7 @@ export const shortDateFormatter = new Intl.DateTimeFormat('en-GB', { day: '2-dig
 export const nameFor = (slug: string) => slug === 'balikabok_downstream'
   ? 'Mount Balikabok and downstream area'
   : slug.split('_').map(word => word[0].toUpperCase() + word.slice(1)).join(' ')
-export const dateFor = (date: string) => new Date(`${date.slice(0, 19)}Z`)
+export const dateFor = (date: string) => new Date(asUTC(date))
 export const centerFor = (bounds: LatLngBoundsLiteral): LatLngTuple => [
   (bounds[0][0] + bounds[1][0]) / 2,
   (bounds[0][1] + bounds[1][1]) / 2,

@@ -73,7 +73,7 @@ test('evidence exports have bounded coverage and reconcile highlighted hectares 
 test('each area displays its own evidence and preserves report and observation distinctions', () => {
   for (const zone of ['mountain', 'downstream', 'study']) {
     const html = renderToStaticMarkup(createElement(Analysis, {
-      location: 'balikabok_downstream', observations: [], mode: 'backscatterChange', dateIndex: 0,
+      location: 'balikabok_downstream', observations: [{ startAt: '2026-08-22', endAt: '2026-09-03' }], mode: 'backscatterChange', dateIndex: 0,
       selection: { ...evidence.initialEvidenceSelection, zone }, onDateChange() {},
     }))
     assert.ok(html.includes('What happened downstream?'))
@@ -109,4 +109,6 @@ test('joined evidence preserves subset relations and does not turn reported plac
     assert.ok(place.properties.location_kind.includes('not an observed damage location'))
   }
   assert.equal(evidence.selectedInvestigation('2026-09-03T00:00:00Z').start, '2026-08-22')
+  assert.equal(evidence.selectedInvestigation('2026-10-01', '2026-10-13'), undefined)
+  assert.equal(evidence.selectedInvestigation(), undefined)
 })

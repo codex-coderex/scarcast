@@ -1,16 +1,16 @@
 import type { BackscatterChangeObservation } from './dashboardData'
 
-export default function BackscatterChangeInfo({ observation }: { observation?: BackscatterChangeObservation }) {
+export default function BackscatterChangeInfo({ observation, showLegend = true }: { observation?: BackscatterChangeObservation; showLegend?: boolean }) {
   if (!observation) return <p className="atlas-body-copy">No compatible backscatter comparison is available.</p>
   const metadata = observation.acquisition.metadata
   return <>
     <p className="atlas-body-copy">Yellow-to-red patches highlight stronger, spatially consistent radar changes. Weak changes and small isolated patches are hidden so the landscape remains visible.</p>
-    <div className="atlas-signal-legend">
+    {showLegend && <div className="atlas-signal-legend">
       <div><span>Lower change strength</span><span>Higher change strength</span></div>
       <div className="atlas-gunw-scale atlas-gunw-scale--hotspots" aria-hidden="true" />
       <div><strong>{metadata.hotspots.threshold_db} dB</strong><strong>{metadata.hotspots.maximum_db}+ dB</strong></div>
       <p>Absolute change in locally averaged HH radar return. Same filters and scale across intervals. Background imagery is context and may be from a different date.</p>
-    </div>
+    </div>}
     <dl className="atlas-metadata">
       <div><dt>Comparison interval</dt><dd>{observation.label}</dd></div>
       <div><dt>Mission / product</dt><dd>NISAR / GCOV difference</dd></div>

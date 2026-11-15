@@ -1,4 +1,5 @@
 import type { GridLayer, LatLngBoundsLiteral } from 'leaflet'
+import { asUTC } from './observationTime'
 import type { GeoRasterLayerOptions } from 'georaster-layer-for-leaflet'
 
 /** The part of the Python export's metadata needed for backscatter display. */
@@ -38,6 +39,7 @@ export interface GCOVAcquisition {
   bounds: LatLngBoundsLiteral
   displayMinDb: number
   displayMaxDb: number
+  sharedStretch?: boolean
   metadata: GCOVMetadata
 }
 
@@ -77,7 +79,7 @@ export const gcovManifest: Readonly<Record<string, readonly GCOVAcquisition[]>> 
     const acquisition: GCOVAcquisition = {
       id,
       location,
-      acquiredAt: metadata.identification.zeroDopplerStartTime,
+      acquiredAt: asUTC(metadata.identification.zeroDopplerStartTime),
       frequency: 'A',
       url,
       bounds,

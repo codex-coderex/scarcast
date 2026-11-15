@@ -1,12 +1,15 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import { useReducedMotion } from 'framer-motion'
+import type { LatLngBoundsLiteral } from 'leaflet'
 import { gcovManifest } from '../../services/processGCOVData'
 import { gunwManifest } from '../../services/processGUNWData'
 import { locationViewOptions, worldBounds, worldViewOptions } from './dashboardUtils'
 
 /** Fit once per navigation, after the map has its final dimensions. */
-export default function MapViewport({ location, onMovingChange }: {
+export default function MapViewport({ location, resetVersion = 0, focusBounds, onMovingChange }: {
+  focusBounds?: LatLngBoundsLiteral
+  resetVersion?: number
   location: string | null
   onMovingChange: (moving: boolean) => void
 }) {
@@ -14,6 +17,8 @@ export default function MapViewport({ location, onMovingChange }: {
   const reduceMotion = useReducedMotion()
   const previousLocation = useRef(location)
   const previousReducedMotion = useRef(reduceMotion)
+  const previousReset = useRef(resetVersion)
+  const previousFocus = useRef(focusBounds)
   useLayoutEffect(() => {
     const controls = [map.dragging, map.scrollWheelZoom, map.doubleClickZoom, map.touchZoom, map.keyboard]
     controls.forEach(control => location ? control.enable() : control.disable())
@@ -33,24 +38,26 @@ export default function MapViewport({ location, onMovingChange }: {
       // resets the view and refreshes tiles before the new flight can start.
       map.invalidateSize({ animate: false, pan: false })
       size = map.getSize()
-      const bounds = acquisition?.bounds ?? worldBounds
-      const options = acquisition ? locationViewOptions(size.y) : worldViewOptions
+      const bounds = focusBounds ?? acquisition?.bounds ?? worldBounds
+      const options = acquisition ? {...locationViewOptions(size.y),maxZoom:14} : worldViewOptions
       if (animate && !reduceMotion) map.flyToBounds(bounds, options)
       else map.fitBounds(bounds, { ...options, animate: false })
     }
 
     // MapContainer already fitted the world using the same options before paint.
     if (previousLocation.current !== location) fitView(true)
-    else if (previousReducedMotion.current !== reduceMotion) fitView(false)
+    else if (previousReducedMotion.current !== reduceMotion || previousReset.current !== resetVersion || previousFocus.current !== focusBounds) fitView(false)
     previousLocation.current = location
     previousReducedMotion.current = reduceMotion
+    previousReset.current = resetVersion
+    previousFocus.current = focusBounds
 
     const observer = new ResizeObserver(([entry]) => {
       const { width, height } = entry.contentRect
       if (Math.round(width) === size.x && Math.round(height) === size.y) return
       cancelAnimationFrame(frame)
-      // A late layout resize must not turn an active flight into an instant fit.
-      frame = requestAnimationFrame(() => fitView(true))
+      // Preserve the inspected geographic center/zoom on ordinary layout changes.
+      frame = requestAnimationFrame(() => { map.invalidateSize({animate:false,pan:false});size=map.getSize() })
     })
     observer.observe(map.getContainer())
     return () => {
@@ -60,7 +67,7 @@ export default function MapViewport({ location, onMovingChange }: {
       map.off('moveend', settled)
       settled()
     }
-  }, [map, location, reduceMotion, onMovingChange])
+  }, [map, location, reduceMotion, resetVersion, focusBounds, onMovingChange])
 
   // Stop only on unmount, not during the layout change for every navigation.
   useLayoutEffect(() => () => { map.stop() }, [map])

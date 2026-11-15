@@ -4,10 +4,11 @@ import { createServer } from 'vite'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 
-let server, model, gunw, gcov, Timeline, Info, Analysis, blendModel
+let server, model, gunw, gcov, Timeline, Info, Analysis, blendModel, mapUtils
 before(async () => {
   server = await createServer({ cacheDir: 'node_modules/.cache/dashboard-tests', optimizeDeps: { noDiscovery: true }, server: { middlewareMode: true, hmr: false, ws: false }, appType: 'custom' })
   model = await server.ssrLoadModule('/src/components/dashboard/dashboardData.ts')
+  mapUtils = await server.ssrLoadModule('/src/components/dashboard/dashboardUtils.ts')
   blendModel = await server.ssrLoadModule('/src/components/dashboard/observationBlend.ts')
   gunw = await server.ssrLoadModule('/src/services/processGUNWData.ts')
   gcov = await server.ssrLoadModule('/src/services/processGCOVData.ts')
@@ -16,6 +17,28 @@ before(async () => {
   ;({ default: Analysis } = await server.ssrLoadModule('/src/components/dashboard/AnalysisInfo.tsx'))
 })
 after(async () => { await server?.close() })
+
+test('opening either Balikabok location selects event-spanning coherence by default',()=>{
+  for(const slug of ['mount_balikabok','balikabok_downstream']){
+    const acquisitions=gcov.getGCOVAcquisitions(slug),pairs=gunw.getGUNWAcquisitions(slug)
+    const initial=model.initialDashboardObservation(acquisitions,pairs)
+    assert.equal(initial.mode,'coherence')
+    const selected=model.dashboardObservations(acquisitions,pairs,initial.mode)[initial.index]
+    assert.equal(selected.startAt.slice(0,10),'2026-08-22')
+    assert.equal(selected.endAt.slice(0,10),'2026-09-03')
+  }
+  assert.equal(model.initialDashboardObservation(gcov.getGCOVAcquisitions('mount_balikabok'),[]).mode,'backscatter')
+})
+
+test('street tiles locate known places geographically rather than transposing longitude and latitude axes',()=>{
+  const cases=[{lat:14.6,lon:120.98,path:'/3/6/3.png'},{lat:40.71,lon:-74.0,path:'/3/2/3.png'},{lat:-33.87,lon:151.21,path:'/3/7/4.png'}]
+  for(const place of cases){
+    const z=3,n=2**z,radians=place.lat*Math.PI/180
+    const x=Math.floor((place.lon+180)/360*n),y=Math.floor((1-Math.asinh(Math.tan(radians))/Math.PI)/2*n)
+    const url=new URL(mapUtils.streetTileUrl.replace('{z}',String(z)).replace('{x}',String(x)).replace('{y}',String(y)))
+    assert.equal(url.pathname,place.path)
+  }
+})
 
 test('offers native-pixel backscatter change with chronological intervals and clear dB units', () => {
   const items = model.dashboardObservations(gcov.getGCOVAcquisitions('balikabok_downstream'), [], 'backscatterChange')
@@ -47,13 +70,16 @@ test('blends adjacent dates without changing endpoints or total display opacity'
   assert.equal(blendModel.observationBlend(-1,3).index,0)
 })
 
-test('fractional slider positions label both observations and remain visually explicit', () => {
+test('timeline offers exact observation stops and labeled fractional blends', () => {
   const items = model.dashboardObservations(gcov.getGCOVAcquisitions('mount_balikabok'),[],'backscatter')
-  const html = renderToStaticMarkup(createElement(Timeline,{items,heading:'Observation date',dateIndex:0.5,onDateChange(){}}))
+  const html = renderToStaticMarkup(createElement(Timeline,{items,heading:'Observation date',dateIndex:1,onDateChange(){}}))
   assert.ok(html.includes('step="0.01"'))
-  assert.ok(html.includes('50% blend'))
-  assert.ok(html.includes('not a measurement between dates'))
+  assert.ok(!html.includes('% blend'))
   assert.ok(html.includes(items[1].shortLabel))
+  const blended=renderToStaticMarkup(createElement(Timeline,{items,heading:'Observation date',dateIndex:.5,onDateChange(){}}))
+  assert.ok(blended.includes('50% visual blend'))
+  assert.ok(blended.includes('Not an intermediate observation'))
+  assert.ok(blended.includes(items[0].shortLabel)&&blended.includes(items[1].shortLabel))
 })
 
 test('keeps three GCOV dates, three GUNW pairs and two valid baseline comparisons separate', () => {
@@ -70,6 +96,9 @@ test('keeps three GCOV dates, three GUNW pairs and two valid baseline comparison
   assert.equal(new Set(Object.values(views).flat().map(item => item.key)).size, 11)
   assert.equal(new Set(views.phase.map(item => item.options.displayMin)).size, 1)
   assert.equal(new Set(views.phase.map(item => item.options.displayMax)).size, 1)
+  assert.equal(new Set(views.backscatter.map(item=>item.acquisition.displayMinDb)).size,1)
+  assert.equal(new Set(views.backscatter.map(item=>item.acquisition.displayMaxDb)).size,1)
+  assert.ok(views.backscatter.every(item=>item.startAt.endsWith('Z')))
 })
 
 test('omits unavailable layers, invalid comparisons and empty locations', () => {

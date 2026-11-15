@@ -8,20 +8,23 @@ import type { GCOVLayerCache } from '../services/gcovLayerCache'
 import { createGUNWDataCache, getGUNWAcquisitions, gunwManifest } from '../services/processGUNWData'
 import type { GUNWDataCache } from '../services/gunwTypes'
 import { locationViewOptions, nameFor } from '../components/dashboard/dashboardUtils'
-import { dashboardObservations } from '../components/dashboard/dashboardData'
+import { dashboardObservations, initialDashboardObservation } from '../components/dashboard/dashboardData'
 import type { MapDataMode } from '../components/dashboard/dashboardData'
-import type { DataTab, RasterState } from '../components/dashboard/dashboardUtils'
+import type { RasterState } from '../components/dashboard/dashboardUtils'
 import DashboardMap from '../components/dashboard/DashboardMap'
 import DashboardMotion from '../components/dashboard/DashboardMotion'
 import MapHeader from '../components/dashboard/MapHeader'
 import LocationIndex from '../components/dashboard/LocationIndex'
-import MapLayerControls from '../components/dashboard/MapLayerControls'
 import RasterStatus from '../components/dashboard/RasterStatus'
 import ObservationTimeline from '../components/dashboard/ObservationTimeline'
 import LocationPanel from '../components/dashboard/LocationPanel'
-import { observationBlend } from '../components/dashboard/observationBlend'
+import { initialExplorerSelection } from '../components/dashboard/investigation/investigationModel'
+import type { InvestigationView } from '../components/dashboard/investigation/investigationModel'
 import { clearBackscatterChangeCache } from '../services/processBackscatterChange'
-import { initialEvidenceSelection, opticalSceneAt } from '../services/corroborationData'
+import { observationBlend } from '../components/dashboard/observationBlend'
+import { selectedAssessmentCandidate } from '../services/assessmentData'
+import type { LatLngBoundsLiteral } from 'leaflet'
+import { opticalSceneAt, opticalTimeline } from '../services/corroborationData'
 import type { EvidenceSelection } from '../services/corroborationData'
 const DebrisTerrainView = lazy(() => import('../components/dashboard/DebrisTerrainView'))
 
@@ -31,13 +34,12 @@ const emptyPairs: ReturnType<typeof getGUNWAcquisitions> = []
 export default function DashboardPage() {
   const [location, setLocation] = useState<string | null>(null)
   const [terrainOpen, setTerrainOpen] = useState(false)
-  const [dateIndex, setDateIndex] = useState(0)
-  const [pairIndex, setPairIndex] = useState(0)
-  const [comparisonIndex, setComparisonIndex] = useState(0)
-  const [backscatterChangeIndex, setBackscatterChangeIndex] = useState(0)
-  const [mode, setMode] = useState<MapDataMode>('backscatter')
-  const [tab, setTab] = useState<DataTab>('backscatter')
-  const [evidenceSelection, setEvidenceSelection] = useState<EvidenceSelection>(initialEvidenceSelection)
+  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [mode, setMode] = useState<MapDataMode>('coherence')
+  const [view, setView] = useState<InvestigationView>('radar')
+  const [evidenceSelection, setEvidenceSelection] = useState<EvidenceSelection>(initialExplorerSelection)
+  const [resetVersion, setResetVersion] = useState(0)
+  const [focusBounds,setFocusBounds]=useState<LatLngBoundsLiteral>()
   const [visible, setVisible] = useState(true)
   const [rasterState, setRasterState] = useState<RasterState | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -55,18 +57,16 @@ export default function DashboardPage() {
   }), [acquisitions, pairs])
   const modes = useMemo(() => (Object.keys(views) as MapDataMode[]).filter(value => views[value].length > 0), [views])
   const observations = views[mode]
-  const activeIndex = Math.min(mode === 'backscatter' ? dateIndex : mode === 'backscatterChange' ? backscatterChangeIndex : mode === 'coherenceChange' ? comparisonIndex : pairIndex, Math.max(0, observations.length - 1))
-  const blend = observationBlend(activeIndex, observations.length)
+  const activeIndex = Math.min(selectedIndex, Math.max(0, observations.length - 1))
+  const blend=observationBlend(activeIndex,observations.length)
   const observation = observations[blend.index]
-  const nextObservation = blend.nextIndex !== blend.index ? observations[blend.nextIndex] : undefined
+  const nextObservation=blend.nextIndex!==blend.index?observations[blend.nextIndex]:undefined
   const observationTime = observation ? Date.parse(observation.endAt ?? observation.startAt) : NaN
-  const nextTime = nextObservation ? Date.parse(nextObservation.endAt ?? nextObservation.startAt) : observationTime
-  const opticalScene = opticalSceneAt(observationTime + (nextTime - observationTime) * blend.fraction)
+  const opticalScene = opticalTimeline?.scenes.find(scene => scene.id === evidenceSelection.opticalSceneOverride) ?? opticalSceneAt(observationTime)
   const syncedEvidenceSelection = { ...evidenceSelection, opticalScene: opticalScene?.id }
-  const detailObservation = observation?.kind !== 'backscatter' ? observation : undefined
-  const acquisition = acquisitions[Math.floor(dateIndex)]
+  const acquisition = observation?.kind === 'backscatter' ? observation.acquisition : undefined
   const status = rasterState?.id === observation?.key ? rasterState : null
-  const evidenceActive = location === 'balikabok_downstream' && tab === 'analysis'
+  const evidenceActive = location === 'balikabok_downstream' || location==='mount_balikabok'
   const backToWorld = useCallback(() => setLocation(null), [])
   const onMovingChange = useCallback((moving: boolean) => {
     cachedLayers.current?.setMoving(moving)
@@ -87,17 +87,7 @@ export default function DashboardPage() {
     cachedLayers.current = cache
     const gunw = createGUNWDataCache()
     gunwCache.current = gunw
-    // Keep the existing backscatter startup work first; warm GUNW data sequentially.
-    void cache.preload(Object.values(gcovManifest).flat()).then(async () => {
-      for (const observations of Object.values(gunwManifest)) {
-        for (const pair of observations) {
-          if (controller.signal.aborted) return
-          const keys = [...new Set(['phase', 'coherence'].flatMap(value =>
-            dashboardObservations([], [pair], value as MapDataMode).flatMap(item => item.kind === 'gunw' && item.options.layer ? [item.options.layer] : [])))]
-          await gunw.preload([pair], keys, controller.signal)
-        }
-      }
-    }).catch(() => { /* Selected layers retry preload failures through the cache. */ })
+    // Overlays request the selected observation on demand; no global raster preload.
     return () => {
       controller.abort()
       gunw.clear()
@@ -109,18 +99,14 @@ export default function DashboardPage() {
 
   const selectLocation = useCallback((slug: string) => {
     setTerrainOpen(false)
-    setEvidenceSelection(initialEvidenceSelection)
-    setComparisonIndex(0)
+    setEvidenceSelection(initialExplorerSelection)
+    setFocusBounds(undefined)
+    setView('radar')
     const nextBackscatter = gcovManifest[slug] ?? emptyBackscatter
     const nextPairs = getGUNWAcquisitions(slug)
-    setBackscatterChangeIndex(Math.max(0, dashboardObservations(nextBackscatter, nextPairs, 'backscatterChange').findIndex(item => item.startAt.startsWith('2026-08-22') && item.endAt?.startsWith('2026-09-03'))))
-    setDateIndex(slug === 'balikabok_downstream'
-      ? Math.max(0, nextBackscatter.findIndex(item => item.acquiredAt.startsWith('2026-09-03'))) : 0)
-    setPairIndex(slug === 'balikabok_downstream'
-      ? Math.max(0, nextPairs.findIndex(item => item.referenceAt.startsWith('2026-08-22') && item.secondaryAt.startsWith('2026-09-03'))) : 0)
-    const firstMode = (['backscatter', 'phase', 'coherence'] as const).find(value => dashboardObservations(nextBackscatter, nextPairs, value).length) ?? 'backscatter'
-    setMode(firstMode)
-    setTab(firstMode === 'backscatter' ? 'backscatter' : 'deformation')
+    const initial=initialDashboardObservation(nextBackscatter,nextPairs)
+    setSelectedIndex(initial.index)
+    setMode(initial.mode)
     setVisible(true)
     setRasterState(null)
     setLocation(slug)
@@ -128,27 +114,35 @@ export default function DashboardPage() {
 
   const onModeChange = useCallback((value: MapDataMode) => {
     if (!modes.includes(value)) return
+    const targetTime = observation ? Date.parse(observation.endAt ?? observation.startAt) : NaN
+    const next = views[value]
+    const nearest = next.reduce((best, item, index) => {
+      const distance = Math.abs(Date.parse(item.endAt ?? item.startAt) - targetTime)
+      const bestDistance = Math.abs(Date.parse(next[best].endAt ?? next[best].startAt) - targetTime)
+      return distance < bestDistance ? index : best
+    }, 0)
+    setSelectedIndex(nearest)
     setMode(value)
-    setTab(current => current === 'analysis' ? current : value === 'backscatter' ? 'backscatter' : 'deformation')
     setVisible(true)
     setRasterState(null)
-  }, [modes])
+  }, [modes, observation, views])
 
-  function onTabChange(value: DataTab) {
-    if (value === 'backscatter') { onModeChange('backscatter'); setTab(value) }
-    else if (value === 'deformation' && mode === 'backscatter') {
-      const next = modes.find(candidate => candidate !== 'backscatter')
-      if (next) onModeChange(next)
-      setTab(value)
-    } else setTab(value)
+  function focusCandidate(id:string){
+    const selected=selectedAssessmentCandidate(id);if(!selected)return
+    setEvidenceSelection(value=>({...value,candidateId:id,selectedPlace:undefined}))
+    const [[south,west],[north,east]]=selected.candidate.bounds
+    const latPadding=Math.max((north-south)*.75,.004),lonPadding=Math.max((east-west)*.75,.004)
+    setFocusBounds([[south-latPadding,west-lonPadding],[north+latPadding,east+lonPadding]])
+  }
+  function focusOverview(){
+    setFocusBounds(undefined)
+    setEvidenceSelection(value=>({...value,selectedPlace:undefined}))
+    setResetVersion(value=>value+1)
   }
 
   function onDateChange(index: number) {
-    if (index < 0 || index >= observations.length) return
-    if (mode === 'backscatter') setDateIndex(index)
-    else if (mode === 'backscatterChange') setBackscatterChangeIndex(index)
-    else if (mode === 'coherenceChange') setComparisonIndex(index)
-    else setPairIndex(index)
+    if (!Number.isFinite(index) || index < 0 || index > observations.length-1) return
+    setSelectedIndex(index)
   }
 
   useEffect(() => {
@@ -166,20 +160,16 @@ export default function DashboardPage() {
     <DashboardMotion>
       <main ref={dashboard} className={`atlas${location ? ' atlas--focused' : ''}`}>
         <section className="atlas-map-stage" aria-label={location ? `Map of ${nameFor(location)}` : 'World study map'}>
-          <DashboardMap location={location} observation={observation} cachedLayers={cachedLayers} gunwCache={gunwCache}
+          <DashboardMap location={location} resetVersion={resetVersion} focusBounds={focusBounds} onSelectCandidate={focusCandidate} observation={observation} nextObservation={nextObservation} blendFraction={blend.fraction} cachedLayers={cachedLayers} gunwCache={gunwCache}
             evidenceSelection={evidenceActive ? syncedEvidenceSelection : undefined}
-            opticalSelection={location === 'balikabok_downstream' ? syncedEvidenceSelection : undefined}
+            opticalSelection={evidenceActive ? syncedEvidenceSelection : undefined}
             onSelectPlace={name => setEvidenceSelection(value => ({ ...value, selectedPlace: name }))}
-            nextObservation={nextObservation} blendFraction={blend.fraction}
             visible={visible} attempt={attempt} onMovingChange={onMovingChange}
             onSelectLocation={selectLocation} onRasterStatus={setRasterState} />
           <MapHeader location={location} onBack={backToWorld} />
+          {location&&<p className="atlas-basemap-note">Cartographic basemap · dated evidence overlays only</p>}
           <AnimatePresence initial={false}>
             {!location && <LocationIndex key="locations" onSelectLocation={selectLocation} />}
-            {observation && <MapLayerControls key="layer-controls" visible={visible} mode={mode} modes={modes} onModeChange={onModeChange}
-              onOpenTerrain={location === 'balikabok_downstream' || location === 'mount_balikabok' ? () => setTerrainOpen(true) : undefined}
-              evidence={location === 'balikabok_downstream' ? syncedEvidenceSelection : undefined} onEvidenceChange={setEvidenceSelection}
-              onToggle={() => setVisible(value => !value)} />}
             {observation && <ObservationTimeline key="timeline" items={observations}
               heading={mode === 'backscatter' ? 'Observation date' : mode === 'backscatterChange' ? 'Backscatter comparison' : mode === 'coherenceChange' ? 'Coherence comparison' : 'Observation pair'}
               dateIndex={activeIndex} onDateChange={onDateChange}>
@@ -190,10 +180,13 @@ export default function DashboardPage() {
           {terrainOpen && (location === 'balikabok_downstream' || location === 'mount_balikabok') && <Suspense fallback={<div className="atlas-terrain-view">Loading terrain…</div>}><DebrisTerrainView onClose={() => setTerrainOpen(false)} /></Suspense>}
         </section>
         <AnimatePresence>
-          {location && <LocationPanel key={location} location={location} acquisition={acquisition} acquisitions={acquisitions}
-            pairs={pairs} observation={detailObservation} observations={observations} mode={mode} modes={modes} status={status} onModeChange={onModeChange}
+          {location && <LocationPanel key={location} location={location} acquisition={acquisition}
+            pairs={pairs} observation={observation} nextObservation={nextObservation} blendFraction={blend.fraction} mode={mode} modes={modes} status={status} onModeChange={onModeChange}
             evidenceSelection={syncedEvidenceSelection} onEvidenceSelectionChange={setEvidenceSelection}
-            tab={tab} dateIndex={blend.index} onTabChange={onTabChange} onDateChange={onDateChange} />}
+            view={view} onViewChange={setView} visible={visible} onToggle={() => setVisible(value => !value)}
+            onReset={() => { selectLocation(location); setResetVersion(value => value + 1) }}
+            onFocusCandidate={focusCandidate} onFocusOverview={focusOverview}
+            onOpenTerrain={location === 'balikabok_downstream' ? () => setTerrainOpen(true) : undefined} />}
         </AnimatePresence>
       </main>
     </DashboardMotion>

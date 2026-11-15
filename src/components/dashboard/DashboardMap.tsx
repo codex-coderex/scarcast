@@ -1,16 +1,17 @@
 import { memo } from 'react'
+import CandidateMapOverlay from './CandidateMapOverlay'
 import type { RefObject } from 'react'
 import EvidenceMapOverlay from './EvidenceMapOverlay'
 import OpticalSceneOverlay from './OpticalSceneOverlay'
 import { selectedOpticalScene } from '../../services/corroborationData'
 import type { EvidenceSelection } from '../../services/corroborationData'
 import { divIcon } from 'leaflet'
-import type { LatLngTuple } from 'leaflet'
-import { MapContainer, Marker, Polygon, Polyline, TileLayer, Tooltip } from 'react-leaflet'
+import type { LatLngTuple, LatLngBoundsLiteral } from 'leaflet'
+import { MapContainer, Marker, Polygon, Polyline, TileLayer, Tooltip, ZoomControl, ScaleControl } from 'react-leaflet'
 import type { GUNWDataCache } from '../../services/gunwTypes'
 import type { DashboardObservation } from './dashboardData'
 import type { GCOVLayerCache } from '../../services/gcovLayerCache'
-import { centerFor, locations, nameFor, worldBounds, worldViewOptions } from './dashboardUtils'
+import { centerFor, locations, nameFor, worldBounds, worldViewOptions, streetTileUrl } from './dashboardUtils'
 import type { RasterState } from './dashboardUtils'
 import MapViewport from './MapViewport'
 import RasterBlendOverlay from './RasterBlendOverlay'
@@ -23,7 +24,10 @@ const markerIcon = divIcon({
   iconAnchor: [15, 15],
 })
 
-export default memo(function DashboardMap({ location, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus, nextObservation, blendFraction = 0, evidenceSelection, opticalSelection, onSelectPlace }: {
+export default memo(function DashboardMap({ location, resetVersion = 0, focusBounds, onSelectCandidate, observation, cachedLayers, gunwCache, visible, attempt, onMovingChange, onSelectLocation, onRasterStatus, nextObservation, blendFraction = 0, evidenceSelection, opticalSelection, onSelectPlace }: {
+  focusBounds?: LatLngBoundsLiteral
+  onSelectCandidate?: (id:string)=>void
+  resetVersion?: number
   opticalSelection?: EvidenceSelection
   onSelectPlace?: (name: string) => void
   evidenceSelection?: EvidenceSelection
@@ -39,18 +43,18 @@ export default memo(function DashboardMap({ location, observation, cachedLayers,
   onSelectLocation: (slug: string) => void
   onRasterStatus: (state: RasterState) => void
 }) {
-  const imagery = observation?.kind === 'backscatterChange' || Boolean(evidenceSelection)
   const optical = opticalSelection?.optical && opticalSelection.opticalScene ? selectedOpticalScene(opticalSelection.opticalScene) : undefined
   return (
     <MapContainer className="atlas-map" bounds={worldBounds} boundsOptions={worldViewOptions}
       zoomControl={false} dragging={false} scrollWheelZoom={false} doubleClickZoom={false}
       touchZoom={false} boxZoom={false} keyboard={false} tapHold={false}
       minZoom={1} maxZoom={19} zoomSnap={0.25} worldCopyJump>
-      <TileLayer key={imagery ? 'imagery' : 'street'} className={imagery ? 'atlas-imagery-basemap' : 'atlas-basemap'}
-        url={imagery ? 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}' : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'}
-        attribution={imagery ? 'Imagery &copy; Esri, Maxar, Earthstar Geographics, GIS User Community' : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'} maxZoom={19}
+      <TileLayer className="atlas-basemap"
+        url={streetTileUrl}
+        attribution={'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'} maxZoom={19}
         updateWhenIdle updateWhenZooming />
-      <MapViewport location={location} onMovingChange={onMovingChange} />
+      <MapViewport location={location} resetVersion={resetVersion} focusBounds={focusBounds} onMovingChange={onMovingChange} />
+      {location&&<><ZoomControl position="topright" /><ScaleControl position="bottomleft" imperial={false} /></>}
       {!location && <>
         {[-60, -30, 0, 30, 60].map(latitude => <Polyline key={`lat${latitude}`}
           positions={[[latitude, -180], [latitude, 180]]} pathOptions={{ color: '#b3a38a', weight: 0.5, opacity: 0.15, interactive: false }} />)}
@@ -74,7 +78,8 @@ export default memo(function DashboardMap({ location, observation, cachedLayers,
           cachedLayers={cachedLayers} gunwCache={gunwCache} onStatus={onRasterStatus} attempt={attempt} />}
       </>}
       {optical && opticalSelection && <OpticalSceneOverlay key={optical.id} scene={optical} opacity={opticalSelection.opticalOpacity} />}
-      {evidenceSelection && <EvidenceMapOverlay selection={evidenceSelection} observation={observation} onSelectPlace={onSelectPlace} />}
+      {evidenceSelection && <EvidenceMapOverlay selection={blendFraction>0?{...evidenceSelection,screen:false}:evidenceSelection} observation={observation} onSelectPlace={onSelectPlace} />}
+      {evidenceSelection&&onSelectCandidate&&<CandidateMapOverlay observation={observation} selection={evidenceSelection} blending={blendFraction>0} onSelect={onSelectCandidate} />}
       {!evidenceSelection && location === 'balikabok_downstream' && gcovManifest.mount_balikabok?.[0] && <><Polygon
         positions={gcovManifest.mount_balikabok[0].metadata.aoi.coordinates[0].map(([lon, lat]) => [lat, lon] as LatLngTuple)}
         pathOptions={{ color: '#e6e4dc', weight: 2, fill: false, dashArray: '7 5' }} />

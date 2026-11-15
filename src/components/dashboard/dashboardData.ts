@@ -1,10 +1,18 @@
 import type { GCOVAcquisition } from '../../services/processGCOVData'
+import { asUTC } from '../../services/observationTime'
 import type { GUNWAcquisition, GUNWProcessOptions } from '../../services/gunwTypes'
 import { dateFor, dateFormatter, shortDateFormatter } from './dashboardUtils'
 import { backscatterChangeManifest } from '../../services/processBackscatterChange'
 import type { BackscatterChangeAcquisition } from '../../services/processBackscatterChange'
 
 export type MapDataMode = 'backscatter' | 'backscatterChange' | 'phase' | 'coherence' | 'coherenceChange'
+
+export function initialDashboardObservation(backscatter:readonly GCOVAcquisition[],pairs:readonly GUNWAcquisition[]){
+  const mode=(['coherence','backscatter','backscatterChange','phase'] as const).find(value=>dashboardObservations(backscatter,pairs,value).length)??'coherence'
+  const observations=dashboardObservations(backscatter,pairs,mode)
+  const index=Math.max(0,observations.findIndex(item=>item.startAt.startsWith('2026-08-22')&&item.endAt?.startsWith('2026-09-03')))
+  return {mode,index}
+}
 export const dataModeLabels: Record<MapDataMode, string> = {
   backscatter: 'Backscatter', backscatterChange: 'Surface change heatmap', phase: 'Unwrapped phase', coherence: 'Coherence', coherenceChange: 'Coherence change',
 }
@@ -43,13 +51,13 @@ function layerKey(pair: GUNWAcquisition, mode: MapDataMode) {
 
 export function dashboardObservations(backscatter: readonly GCOVAcquisition[], pairs: readonly GUNWAcquisition[], mode: MapDataMode): DashboardObservation[] {
   if (mode === 'backscatter') return backscatter.map(acquisition => ({
-    kind: 'backscatter', key: acquisition.id, acquisition, startAt: acquisition.acquiredAt,
+    kind: 'backscatter', key: acquisition.id, acquisition:{...acquisition,sharedStretch:true,displayMinDb:Math.min(...backscatter.map(item=>item.displayMinDb)),displayMaxDb:Math.max(...backscatter.map(item=>item.displayMaxDb))}, startAt: acquisition.acquiredAt,
     label: dateFormatter.format(dateFor(acquisition.acquiredAt)), shortLabel: shortDateFormatter.format(dateFor(acquisition.acquiredAt)),
   }))
   if (mode === 'backscatterChange') {
     const available = new Set(backscatter.map(item => item.id))
     return (backscatterChangeManifest[backscatter[0]?.location] ?? []).filter(item => available.has(item.metadata.before_id) && available.has(item.metadata.after_id)).map(acquisition => {
-      const startAt = acquisition.metadata.start_at, endAt = acquisition.metadata.end_at
+      const startAt = asUTC(acquisition.metadata.start_at), endAt = asUTC(acquisition.metadata.end_at)
       return { kind: 'backscatterChange', acquisition, key: `backscatterChange/${acquisition.location}/${acquisition.id}`, startAt, endAt,
         label: `${dateFormatter.format(dateFor(startAt))} – ${dateFormatter.format(dateFor(endAt))}`,
         shortLabel: `${shortDateFormatter.format(dateFor(startAt))} – ${shortDateFormatter.format(dateFor(endAt))}` }
